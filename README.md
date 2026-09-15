@@ -31,7 +31,10 @@ criticality = "enhancing"
 takes_data  = true
 media_types = ["comics"]
 config_path = "/config"
-provides    = ["komga:comics-serve", "komga:opds", "komga:kobo-sync"]
+provides    = ["media.serve", "komga:opds", "komga:kobo-sync"]
+
+[[claim]]
+capability = "media.serve"          # and the probes that demonstrate it
 
 [wiring]
 hostname        = "comics"
@@ -57,26 +60,67 @@ for one.
 **The digest is what runs.** The tag is a readable name for it and is never
 resolved.
 
-## What it can do, and why that currently wires nothing
+## What it can do, and what that now wires
 
 `provides` is the capability model's plugin side (`F4-R1`): a service declares
 what it can do so that wiring can ask for a capability rather than name a
-service. Every claim here is namespaced with the plugin's id, because a plugin
-may not invent a core-looking name (`F4-R4`).
+service.
 
-**And a namespaced capability is inert until something asks for it.** Nothing
-asks. The core vocabulary these would otherwise claim from — `F4-R2`, owned by
-lemonfiber — is not published, so a plugin written today cannot make a claim that
-wires anything.
+**`media.serve` is a core name**, out of the vocabulary lemonfiber publishes and
+owns (`F4-R2`). It means the contracted thing that vocabulary defines, so
+anything asking for a library server — rather than naming one — can be answered
+by this plugin. Until that vocabulary existed this was `komga:comics-serve`, and
+a namespaced capability is **inert until something asks for it**: the claim was
+true, validated, and wired nothing.
 
-That is a gap in the model rather than a choice here, and it is not left as a
-sentence in a README: `.github/interim/vocabulary_gate.py` fails the day a
-lemonfiber release publishes a vocabulary, so these three claims get read against
-it instead of staying quietly inert.
+A core capability is **demonstrated, not asserted**. The vocabulary says what has
+to be shown and this manifest says where to ask it:
+
+| Probe | Asked as | What it establishes |
+| --- | --- | --- |
+| `guarded` | nobody | An unauthenticated read of the catalogue is refused. A refusal is the pass. |
+| `catalogue` | the operator | The same read answers with the series it holds, and holds at least one |
+
+The second is asked with a credential, which a manifest cannot hold until recipes
+arrive (`F8`). Against the recordings it runs like any other; against a live
+service with nothing to present it is reported **unproven** — never failed,
+because a runner that could not ask has established nothing about the service.
+
+`komga:opds` and `komga:kobo-sync` stay this plugin's own, namespaced with its id
+(`F4-R4`), and stay inert. Nothing in the stack asks for either, which is exactly
+what a namespace is for — and it is why each carries a proof of its own below,
+since nothing else would ever notice if one stopped being true.
+
+## What it adds to what lemonfiber says
+
+A plugin may put a row in a register lemonfiber already runs (`F3-R26`). The
+doctor already runs checks independently, bounds each one, keeps `unverified`
+distinct from `pass`, and carries a remedy on anything that does not pass. This
+plugin adds two rows to it, attributed to the plugin wherever they appear.
+
+| Check | What it notices | Remedy |
+| --- | --- | --- |
+| `komga:claimed` | Komga has no administrator, so the first caller on the household network becomes one | Claim it — and recreate the container if it has been reachable for any length of time |
+| `komga:opds-guarded` | The OPDS catalogue answers a reader who presents nothing | Stop it and look at what is in front of it |
+
+Both ask something no credential is needed for, and deliberately: a check that
+could only be answered by signing in would report `unrun` on every doctor run
+until recipes arrive, and a check that quietly never runs is worse than one that
+fails.
+
+`komga:opds-guarded` and the `komga.opds-is-mounted-and-guarded` proof ask almost
+the same question, and the difference is the point. A proof is asked once, at
+install. A check is asked every time the doctor runs — which is when an upgrade,
+a settings change or a reverse proxy in front of the service could have stopped
+it refusing what it used to refuse.
+
+No code is contributed and none can be (`F3-R6`). There is nothing for
+contributed code to *be*: the row is data and the engine that reads it is
+lemonfiber's, unchanged.
 
 ## The proofs
 
-Three, and every one asserts a **body**. None asserts only a status, because a
+Five, and every one asserts a **body**. None asserts only a status, because a
 status is not an answer: Docker publishes a port by putting a proxy in front of
 it, and that proxy accepts a connection before knowing whether anything inside is
 listening. A manifest whose every proof reads only a status is refused
@@ -87,6 +131,8 @@ listening. A manifest whose every proof reads only a status is refused
 | `komga.serves` | The path the health probe asks for is one this image serves, answering `{"status":"UP"}` |
 | `komga.answers-as-itself` | It is Komga behind that port: `/api/v1/claim` is Komga's own and reports its own state |
 | `komga.library-is-guarded` | An anonymous reader on the household network is refused the library list. A refusal is the pass |
+| `komga.opds-is-mounted-and-guarded` | OPDS is served *and* guarded, in one response: Komga answers an anonymous reader with an OPDS authentication document rather than a login page or a 404 |
+| `komga.kobo-sync-refuses-an-unknown-key` | The Kobo sync endpoint exists. Asked with a key no account holds it refuses; an image without it answers 404 |
 
 The third is the one worth having. This service is LAN-bound *and* reachable at
 a name the whole household knows, and nothing else here would notice if Komga
@@ -99,9 +145,14 @@ Proved by running, on `ghcr.io/gotson/komga@sha256:6c2a967b…`:
 
 - the image starts as a non-root user against a config directory that is not
   root-owned, and opens its listener in 20.6s;
-- all three proofs pass against the live container;
-- all three report **unproven** — not failed, and not passed — against the same
-  published port with the process replaced by `sleep infinity`;
+- all five proofs and both contributed checks pass against the live container,
+  as does the `guarded` probe; the `catalogue` probe reports **unproven** against
+  it, because it is asked with a credential this manifest cannot hold;
+- everything declared passes against the recordings, which is what lets this run
+  with no live Komga anywhere;
+- the recordings for the core capability came off an instance with one library
+  pointed at `/data/media/comics` and one comic in it, because a catalogue probe
+  against an empty catalogue demonstrates the shape and not the serving;
 - the digest resolves in the registry, `1.26.3` still names it, and **no
   signature is offered for it**, recorded as unproven rather than verified.
 
@@ -124,6 +175,12 @@ No `[[secret]]` and no `[[override]]`. Komga creates its own administrator on
 first run and lemonfiber captures nothing from it, and this plugin changes no
 bundled setting. Both blocks exist in the format (`F3-R17`, `F3-R18`); a plugin
 that holds nothing declares nothing.
+
+No `[[recipe]]`. Komga needs no first-run flow driving from outside — it claims
+itself, and the contributed check above is what notices when nobody has. The
+block exists in the format and is checked; a manifest declaring one asks for
+`recipe.run` by name, so a lemonfiber that cannot run one refuses the manifest
+rather than parsing the block and skipping it.
 
 No dashboard **widget**, only a link. A widget reads a service's API with a
 credential, which is an adapter and a captured value — a recipe, arriving with

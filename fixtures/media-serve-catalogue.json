@@ -1,0 +1,99 @@
+{
+  "recorded_from": "ghcr.io/gotson/komga@sha256:6c2a967bbe9acefd05933b2eb498f34afe96a83c6f7f8ab0acb512a1bb3ab50f",
+  "note": "The same read, answered with the operator's credential. Recorded from an instance with one library pointed at /data/media/comics and one comic in it, because a catalogue probe against an empty catalogue demonstrates the shape and not the serving.",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/series"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json"
+    },
+    "json": {
+      "content": [
+        {
+          "id": "0RMF9MGM2CH8Q",
+          "libraryId": "0RMF9MG92CXNK",
+          "name": "Recorded Comic",
+          "url": "/data/media/comics/Recorded Comic",
+          "created": "2026-09-15T17:11:35Z",
+          "lastModified": "2026-09-15T17:11:35Z",
+          "fileLastModified": "2026-09-15T17:11:35Z",
+          "booksCount": 1,
+          "booksReadCount": 0,
+          "booksUnreadCount": 1,
+          "booksInProgressCount": 0,
+          "metadata": {
+            "status": "ONGOING",
+            "statusLock": false,
+            "title": "Recorded Comic",
+            "titleLock": false,
+            "titleSort": "Recorded Comic",
+            "titleSortLock": false,
+            "summary": "",
+            "summaryLock": false,
+            "readingDirection": "",
+            "readingDirectionLock": false,
+            "publisher": "",
+            "publisherLock": false,
+            "ageRating": null,
+            "ageRatingLock": false,
+            "language": "",
+            "languageLock": false,
+            "genres": [],
+            "genresLock": false,
+            "tags": [],
+            "tagsLock": false,
+            "totalBookCount": null,
+            "totalBookCountLock": false,
+            "sharingLabels": [],
+            "sharingLabelsLock": false,
+            "links": [],
+            "linksLock": false,
+            "alternateTitles": [],
+            "alternateTitlesLock": false,
+            "created": "2026-09-15T17:11:35Z",
+            "lastModified": "2026-09-15T17:11:36Z"
+          },
+          "booksMetadata": {
+            "authors": [],
+            "tags": [],
+            "releaseDate": null,
+            "summary": "",
+            "summaryNumber": "",
+            "created": "2026-09-15T17:11:35Z",
+            "lastModified": "2026-09-15T17:11:36Z"
+          },
+          "deleted": false,
+          "oneshot": false
+        }
+      ],
+      "pageable": {
+        "pageNumber": 0,
+        "pageSize": 20,
+        "sort": {
+          "empty": true,
+          "sorted": false,
+          "unsorted": true
+        },
+        "offset": 0,
+        "paged": true,
+        "unpaged": false
+      },
+      "totalElements": 1,
+      "totalPages": 1,
+      "last": true,
+      "size": 20,
+      "number": 0,
+      "sort": {
+        "empty": true,
+        "sorted": false,
+        "unsorted": true
+      },
+      "numberOfElements": 1,
+      "first": true,
+      "empty": false
+    }
+  }
+}
