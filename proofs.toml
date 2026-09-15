@@ -1,0 +1,74 @@
+# The proofs this plugin declares.
+#
+# ─── Why they are not in plugin.toml ─────────────────────────────────────────
+#
+# `F3-R1` lists a plugin's proofs among the things its manifest declares, and
+# `F3-R4` refuses to install a plugin whose proofs do not pass. The manifest
+# contract, at `schema_version = 1`, has no block for them: its top-level
+# structure is `[plugin]`, `[[service]]` and `[requires]`, and `ARCH-R91`
+# requires lemonfiber to *refuse* a manifest carrying a declaration it does not
+# recognise rather than skip it. A `[[proof]]` block in plugin.toml today would
+# not make this plugin better proved — it would make it uninstallable.
+#
+# So they are declared here, in the shape they would take in the manifest, and
+# they move into it unchanged on the day that block exists. This file is data
+# like the manifest is data: it says what to ask and what the answer must be,
+# and it contains nothing that runs.
+#
+# ─── What a proof asserts ────────────────────────────────────────────────────
+#
+# Never a status alone. Docker publishes a port by putting a proxy in front of
+# it, and the proxy accepts a connection before knowing whether anything inside
+# is listening — so "the port answered" is a claim about Docker. Every proof
+# below names a body, and passes only if the body is the one Komga gives.
+#
+# ─── Where they run ──────────────────────────────────────────────────────────
+#
+# Against the recorded responses in `fixtures/`, which is what lets this repo's
+# CI and the catalogue's prove a plugin without a live instance (`F10-R4`), and
+# against a real instance where one exists. A run against recordings is reported
+# as such and is not a proof against the service (`F10-R6`).
+
+schema_version = 1
+
+[[proof]]
+id      = "komga.serves"
+title   = "Komga answers as Komga on its declared health path"
+fixture = "fixtures/actuator-health.json"
+why     = """
+The health probe the manifest declares is the thing lifecycle waits on, so the
+first proof is that the path in the manifest is a path this image serves. The
+body is asserted because the status is not evidence: a container replaced by
+`sleep infinity` publishes the same open port.
+"""
+request = { method = "GET", path = "/actuator/health" }
+expect  = { status = 200, json = { status = "UP" } }
+
+[[proof]]
+id      = "komga.answers-as-itself"
+title   = "The Komga API is mounted and reports its own claim state"
+fixture = "fixtures/api-v1-claim.json"
+why     = """
+A health endpoint proves a process. This proves it is *this* process: `/api/v1/claim`
+is Komga's own, answers an anonymous caller, and returns a boolean about whether
+an administrator has been created yet. Something else serving port 25600 does not
+answer it, and Komga at a version whose API had moved would not answer it here.
+"""
+request = { method = "GET", path = "/api/v1/claim" }
+expect  = { status = 200, json_has_keys = ["isClaimed"], json_types = { isClaimed = "bool" } }
+
+[[proof]]
+id      = "komga.library-is-guarded"
+title   = "An anonymous reader on the LAN cannot list the libraries"
+fixture = "fixtures/api-v1-libraries-anonymous.json"
+why     = """
+This service declares `bind = "lan"`, which puts it in front of every device on
+the household network. What that is safe to do depends on Komga refusing an
+unauthenticated read, and nothing else here would notice if it stopped: the
+health probe would still pass, the API would still answer, and the library list
+would be public.
+
+A refusal is the pass here. The proof fails if this ever returns 200.
+"""
+request = { method = "GET", path = "/api/v1/libraries" }
+expect  = { status = 401 }

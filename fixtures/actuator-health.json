@@ -1,0 +1,17 @@
+{
+  "recorded_from": "ghcr.io/gotson/komga@sha256:6c2a967bbe9acefd05933b2eb498f34afe96a83c6f7f8ab0acb512a1bb3ab50f",
+  "note": "A fresh instance, no library configured, no account claimed. What the declared health probe asks for.",
+  "request": {
+    "method": "GET",
+    "path": "/actuator/health"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/vnd.spring-boot.actuator.v3+json"
+    },
+    "json": {
+      "status": "UP"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "recorded_from": "ghcr.io/gotson/komga@sha256:6c2a967bbe9acefd05933b2eb498f34afe96a83c6f7f8ab0acb512a1bb3ab50f",
+  "note": "Unauthenticated read of the library list. A LAN-bound service that answered this would be publishing the shape of somebody's collection to the network.",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/libraries"
+  },
+  "response": {
+    "status": 401,
+    "headers": {
+      "content-type": "application/json"
+    },
+    "json": {
+      "timestamp": "2026-09-15T00:50:05.991+00:00",
+      "status": 401,
+      "error": "Unauthorized",
+      "message": "Unauthorized",
+      "path": "/api/v1/libraries"
+    }
+  }
+}

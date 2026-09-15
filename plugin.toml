@@ -1,0 +1,47 @@
+# Komga, as a lemonfiber plugin.
+#
+# Contract: https://github.com/lemonfiber/spec/blob/main/20-architecture/contracts/plugin-manifest.md
+#
+# Everything lemonfiber does on this plugin's behalf comes from this file, and it
+# knows nothing about the plugin that is not declared here (ARCH-R83). Nothing in
+# it is executable, and nothing in it can be (F3-R1, F3-R6).
+
+schema_version = 1
+
+[plugin]
+id          = "komga"
+name        = "Komga"
+version     = "1.0.0"
+description = "Reads comics, manga and magazines in a browser, and serves them to the reader apps you already use"
+without_it  = "Comics stay folders of images, opened one file at a time with nothing remembering where you were"
+upstream    = "https://github.com/gotson/komga"
+license     = "MIT"
+forms       = ["library", "full"]
+
+# Komga belongs in the two forms that serve a library rather than acquire one.
+# `library` is the form an operator runs to serve what already exists without a
+# single third-party account, which is exactly what this is; `full` is the lot.
+# Neither `books` nor `auto` is named: those acquire, and this plugin acquires
+# nothing.
+
+[[service]]
+id     = "komga"
+name   = "Komga"
+image  = "ghcr.io/gotson/komga"
+# What actually runs (F3-R8, ARCH-R95). `tag` is the readable name for this
+# digest and is never resolved — moving the tag upstream changes nothing here.
+digest = "sha256:6c2a967bbe9acefd05933b2eb498f34afe96a83c6f7f8ab0acb512a1bb3ab50f"
+tag    = "1.26.3"
+port   = 25600
+# A household service: the point of it is the tablet on the sofa. The tier is
+# all this may say — the address is lemonfiber's to assign (ARCH-R88).
+bind   = "lan"
+# Spring Boot, and slow to start: 20.6s to open its listener on a warm machine
+# with the image already pulled. The budget matches the bundled media server's,
+# which is the slowest thing the stack already waits for.
+health = { kind = "http", path = "/actuator/health", timeout_s = 120 }
+criticality = "enhancing"
+takes_data  = true
+
+[requires]
+capabilities = ["service.add", "service.health.http"]
