@@ -82,10 +82,14 @@ request = { method = "GET", path = "/api/v1/series" }
 expect  = { status = 401 }
 fixture = "fixtures/media-serve-guarded.json"
 
+# It answers with the catalogue — not with a catalogue holding anything. An empty
+# library is a library, and a probe that asked for a non-empty one would refuse to
+# install this on the machine of somebody who has not copied their comics over
+# yet. What a check may assert about the operator's own data, a probe may not.
 [[claim.probe]]
 id      = "catalogue"
 request = { method = "GET", path = "/api/v1/series" }
-expect  = { status = 200, json_has_keys = ["content", "totalElements"], json_at_least = { totalElements = 1 } }
+expect  = { status = 200, json_has_keys = ["content", "totalElements"] }
 fixture = "fixtures/media-serve-catalogue.json"
 
 [wiring]
