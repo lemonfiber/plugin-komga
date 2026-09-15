@@ -9,64 +9,89 @@ which is what this fills.
 
 ## What it is
 
-Three files and a directory, and none of it runs:
+One manifest and a directory of recordings. Nothing here runs:
 
 | Path | What |
 | --- | --- |
-| `plugin.toml` | The manifest. Identity, the one service, and what it needs of lemonfiber |
-| `proofs.toml` | The proofs it declares, and why each one is worth asserting |
+| `plugin.toml` | The whole plugin: identity, the service, what it can do, how the stack reaches it, and the proofs that must pass before it installs |
 | `fixtures/` | Recorded responses the proofs run against, so nobody needs a live Komga |
 | `targets.toml` | The lemonfiber release this is validated and proved against |
-
-A plugin is declarative data. There is no code here that lemonfiber executes,
-and no field in the format by which there could be.
 
 ## What the manifest declares
 
 ```toml
-image  = "ghcr.io/gotson/komga"
-digest = "sha256:6c2a967bbe9acefd05933b2eb498f34afe96a83c6f7f8ab0acb512a1bb3ab50f"
-tag    = "1.26.3"
-port   = 25600
-bind   = "lan"
-health = { kind = "http", path = "/actuator/health", timeout_s = 120 }
+[[service]]
+image       = "ghcr.io/gotson/komga"
+digest      = "sha256:6c2a967bbe9acefd05933b2eb498f34afe96a83c6f7f8ab0acb512a1bb3ab50f"
+tag         = "1.26.3"
+port        = 25600
+bind        = "lan"
+health      = { kind = "http", path = "/actuator/health", timeout_s = 120 }
 criticality = "enhancing"
 takes_data  = true
-forms  = ["library", "full"]
+media_types = ["comics"]
+config_path = "/config"
+provides    = ["komga:comics-serve", "komga:opds", "komga:kobo-sync"]
+
+[wiring]
+hostname        = "comics"
+dashboard_group = "Library"
 ```
 
+**The library it reads is the one the stack already fills.** `takes_data` mounts
+the data root; `media_types = ["comics"]` is what points Komga at the comics part
+of it rather than leaving the operator to find `/data/media/comics` in Komga's
+own settings on first run. The stack's media-type vocabulary gained `comics` for
+exactly this ([lemonfiber-media-stack#79](https://github.com/lemonfiber/lemonfiber-media-stack/pull/79)).
+
+**It is wired, not just installed.** `[wiring]` is how the household reaches it:
+`comics.your-domain` through the bundled proxy, and an entry in the dashboard's
+Library group beside Calibre-Web and Audiobookshelf. lemonfiber writes both — a
+plugin supplies no proxy stanza and no dashboard entry for the same reason it
+supplies no container ([`F3-R31`](https://github.com/lemonfiber/spec/blob/main/10-functional/features/f-extensibility/f3-stack-manifests.md)).
+
+**The tier governs the hostname, not the plugin.** `comics.your-domain` exists
+because `bind = "lan"`. A loopback service gets no route and has no field to ask
+for one.
+
 **The digest is what runs.** The tag is a readable name for it and is never
-resolved — moving the tag upstream changes nothing here, which is the whole
-point of pinning one.
+resolved.
 
-**`bind = "lan"` is a tier, not an address.** lemonfiber assigns the address.
-A plugin that could write its own could put an admin surface on the household
-network without touching anything the security rules inspect.
+## What it can do, and why that currently wires nothing
 
-**`takes_data = true`** is what mounts the library. Point Komga at
-`/data/media/comics` on first run — the same first-run step Calibre-Web takes in
-the bundled stack, and for the same reason: the manifest has no field for a
-library root, and a service that discovers its own is one lemonfiber does not
-have to be taught about.
+`provides` is the capability model's plugin side (`F4-R1`): a service declares
+what it can do so that wiring can ask for a capability rather than name a
+service. Every claim here is namespaced with the plugin's id, because a plugin
+may not invent a core-looking name (`F4-R4`).
+
+**And a namespaced capability is inert until something asks for it.** Nothing
+asks. The core vocabulary these would otherwise claim from — `F4-R2`, owned by
+lemonfiber — is not published, so a plugin written today cannot make a claim that
+wires anything.
+
+That is a gap in the model rather than a choice here, and it is not left as a
+sentence in a README: `.github/interim/vocabulary_gate.py` fails the day a
+lemonfiber release publishes a vocabulary, so these three claims get read against
+it instead of staying quietly inert.
 
 ## The proofs
 
 Three, and every one asserts a **body**. None asserts only a status, because a
 status is not an answer: Docker publishes a port by putting a proxy in front of
-it, and that proxy accepts a connection before knowing whether anything inside
-is listening. A container replaced by `sleep infinity` answers a bare connect
-exactly as the real one does.
+it, and that proxy accepts a connection before knowing whether anything inside is
+listening. A manifest whose every proof reads only a status is refused
+(`ARCH-R105`).
 
 | Proof | What it establishes |
 | --- | --- |
-| `komga.serves` | The path the health probe asks for is one this image serves, and answers `{"status":"UP"}` |
-| `komga.answers-as-itself` | It is Komga behind that port, not something else: `/api/v1/claim` is Komga's own and reports its own state |
+| `komga.serves` | The path the health probe asks for is one this image serves, answering `{"status":"UP"}` |
+| `komga.answers-as-itself` | It is Komga behind that port: `/api/v1/claim` is Komga's own and reports its own state |
 | `komga.library-is-guarded` | An anonymous reader on the household network is refused the library list. A refusal is the pass |
 
-The third is the one worth having. This service is LAN-bound by declaration, and
-nothing else here would notice if Komga stopped refusing that read: the health
-probe would still pass, the API would still answer, and the shape of somebody's
-collection would be public.
+The third is the one worth having. This service is LAN-bound *and* reachable at
+a name the whole household knows, and nothing else here would notice if Komga
+stopped refusing that read: the health probe would still pass, the API would
+still answer, and the shape of somebody's collection would be public.
 
 ## What was proved by running, and what only by validating
 
@@ -75,63 +100,49 @@ Proved by running, on `ghcr.io/gotson/komga@sha256:6c2a967b…`:
 - the image starts as a non-root user against a config directory that is not
   root-owned, and opens its listener in 20.6s;
 - all three proofs pass against the live container;
-- all three report **unproven** — not failed, and certainly not passed —
-  against the same published port with the process replaced by `sleep infinity`;
+- all three report **unproven** — not failed, and not passed — against the same
+  published port with the process replaced by `sleep infinity`;
 - the digest resolves in the registry, `1.26.3` still names it, and **no
-  signature is offered for it**, which is recorded as unproven rather than as
-  verified.
+  signature is offered for it**, recorded as unproven rather than verified.
 
 Proved only by validating:
 
-- that the manifest conforms. There is no published schema to conform *to* —
-  see below — so it is checked against the contract document by hand.
+- that the manifest conforms — including the wiring, the capability namespacing
+  and the library targeting. There is no published schema to conform *to*, so it
+  is checked against the contract document by hand, and
+  `.github/interim/schema_gate.py` fails the day a real one is published.
 
-**Not proved at all, and not claimed:** that lemonfiber installs this. The
-release that implements plugins is `0.16.0` and it is planned. Nothing here has
-been installed, rehearsed or removed, because there is nothing yet to do it.
+**Not proved at all, and not claimed:** that lemonfiber installs this, that the
+proxy stanza is generated, or that the dashboard entry appears. `0.16.0` is the
+release that implements plugins and it is planned. What the manifest declares is
+validated; what an installer would do with it has not been run, because there is
+no installer.
 
-## Three things the plugin format could not express
+## What is deliberately not here
 
-Recorded because a gap nobody wrote down is a gap the next author rediscovers.
+No `[[secret]]` and no `[[override]]`. Komga creates its own administrator on
+first run and lemonfiber captures nothing from it, and this plugin changes no
+bundled setting. Both blocks exist in the format (`F3-R17`, `F3-R18`); a plugin
+that holds nothing declares nothing.
 
-**There is no block for proofs.** `F3-R1` lists a plugin's proofs among what its
-manifest declares and `F3-R4` refuses to install a plugin whose proofs fail —
-but `plugin.toml` at `schema_version = 1` has only `[plugin]`, `[[service]]` and
-`[requires]`, and an unrecognised declaration must be *refused* rather than
-skipped. A `[[proof]]` block in the manifest today would make this plugin
-uninstallable. So they live in `proofs.toml`, in the shape they would take in
-the manifest, and move into it unchanged when the block exists.
-
-**There is no published schema.** `F3-R2` requires validation against one and
-`ARCH-R92` requires it to be generated from lemonfiber's own types rather than
-written. None is published, so `.github/interim/validate.py` checks the contract
-by hand — deliberately not published as a schema, because `F10-R2` forbids a
-second description of this format standing beside the generated one.
-`.github/interim/schema_gate.py` is the register that ends the arrangement: it
-fails the day a release publishes the real thing.
-
-**There is no media type for comics.** The vocabulary is `tv`, `movies`, `music`
-and `books`, so this plugin declares no `media_types` at all rather than
-misfiling comics as books. It costs nothing today and would cost something the
-moment anything sorted a library by medium.
+No dashboard **widget**, only a link. A widget reads a service's API with a
+credential, which is an adapter and a captured value — a recipe, arriving with
+`F8` in `0.18.0`.
 
 ## Where this repository is not the catalogue
 
 `lemonfiber-plugins` is the reviewed catalogue, and this is not it. This is a
-plugin's **source** — the thing `F10-R9` says publishing requires and no more
-than: a git repository. The catalogue holds a reviewed copy; an operator may
-install from either, and `F5-R6` requires the technical validation to be
-identical for both.
-
-Which is also why this repository runs the checks it does. `F10-R7` asks for a
-plugin whose own CI runs the same commands the catalogue's CI runs, so that the
-first time a plugin meets them is not in somebody else's pull request.
+plugin's **source** — what `F10-R9` says publishing requires and no more than: a
+git repository. `F10-R7` is why its CI runs what it runs: the same commands the
+catalogue's CI runs, so the first time a plugin meets them is not in somebody
+else's pull request.
 
 ## Being official buys this nothing
 
 Same schema validation, same digest pinning, same signature verification, same
-proof runs as any plugin written by anybody. There is no trust bit, no shortcut
-and nothing here asks for one.
+proof runs as any plugin written by anybody. There is no trust bit and no
+shortcut — and where the model would not do what this plugin needed, the model
+was changed for everybody rather than bent for this one.
 
 ## Licence
 

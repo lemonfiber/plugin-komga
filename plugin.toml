@@ -11,17 +11,16 @@ schema_version = 1
 [plugin]
 id          = "komga"
 name        = "Komga"
-version     = "1.0.0"
+version     = "1.1.0"
 description = "Reads comics, manga and magazines in a browser, and serves them to the reader apps you already use"
 without_it  = "Comics stay folders of images, opened one file at a time with nothing remembering where you were"
 upstream    = "https://github.com/gotson/komga"
 license     = "MIT"
 forms       = ["library", "full"]
 
-# Komga belongs in the two forms that serve a library rather than acquire one.
-# `library` is the form an operator runs to serve what already exists without a
-# single third-party account, which is exactly what this is; `full` is the lot.
-# Neither `books` nor `auto` is named: those acquire, and this plugin acquires
+# The two forms that serve a library rather than acquire one. `library` runs
+# without a single third-party account, which is exactly what this is; `full` is
+# the lot. Neither `books` nor `auto` is named: those acquire, and this acquires
 # nothing.
 
 [[service]]
@@ -29,19 +28,99 @@ id     = "komga"
 name   = "Komga"
 image  = "ghcr.io/gotson/komga"
 # What actually runs (F3-R8, ARCH-R95). `tag` is the readable name for this
-# digest and is never resolved — moving the tag upstream changes nothing here.
+# digest and is never resolved.
 digest = "sha256:6c2a967bbe9acefd05933b2eb498f34afe96a83c6f7f8ab0acb512a1bb3ab50f"
 tag    = "1.26.3"
 port   = 25600
 # A household service: the point of it is the tablet on the sofa. The tier is
-# all this may say — the address is lemonfiber's to assign (ARCH-R88).
+# all this may say — the address is lemonfiber's to assign (ARCH-R88), and so is
+# whether it is reachable by name at all (ARCH-R104).
 bind   = "lan"
 # Spring Boot, and slow to start: 20.6s to open its listener on a warm machine
-# with the image already pulled. The budget matches the bundled media server's,
-# which is the slowest thing the stack already waits for.
+# with the image already pulled. The budget matches the bundled media server's.
 health = { kind = "http", path = "/actuator/health", timeout_s = 120 }
 criticality = "enhancing"
+
+# The library half. `takes_data` mounts the data root; `media_types` is what
+# points this at the part of it that is comics, rather than leaving the operator
+# to find /data/media/comics in Komga's own settings on first run. The vocabulary
+# gained `comics` for exactly this — see lemonfiber-media-stack#79.
 takes_data  = true
+media_types = ["comics"]
+
+# Komga reads KOMGA_CONFIGDIR=/config, which is also the default, so this line
+# changes nothing for this plugin. It is here because it is load-bearing for the
+# next author and free to state: the generated container mounts one directory,
+# and this says where the image expects to find it.
+config_path = "/config"
+
+# What it can do (F4-R1). Every name is namespaced with the plugin's id, because
+# the core vocabulary F4-R2 owes is not published yet and a plugin may not invent
+# a core-looking name (F4-R4). A namespaced capability is inert until something
+# asks for it — so these wire nothing today, and that is the gap rather than the
+# design. `.github/interim/vocabulary_gate.py` is what goes red when it closes.
+provides = [
+    "komga:comics-serve",
+    "komga:opds",
+    "komga:kobo-sync",
+]
+
+[wiring]
+# Where the household reaches it once Caddy is running. A label in front of the
+# operator's own domain, never an address — comics.example.com rather than
+# komga.example.com, because the household knows what it went there for and not
+# what the software is called.
+hostname        = "comics"
+dashboard_group = "Library"
 
 [requires]
 capabilities = ["service.add", "service.health.http"]
+
+# ─── Proofs ──────────────────────────────────────────────────────────────────
+#
+# Every one asserts a body. A status is a claim about the network path and not
+# about the service: Docker publishes a port by putting a proxy in front of it,
+# and that proxy accepts a connection before knowing whether anything inside is
+# listening (ARCH-R105).
+
+[[proof]]
+id      = "komga.serves"
+title   = "Komga answers as Komga on its declared health path"
+fixture = "fixtures/actuator-health.json"
+why     = """
+The health probe the manifest declares is what lifecycle waits on, so the first
+proof is that the path in the manifest is a path this image serves. The body is
+asserted because the status is not evidence: a container replaced by
+`sleep infinity` publishes the same open port.
+"""
+request = { method = "GET", path = "/actuator/health" }
+expect  = { status = 200, json = { status = "UP" } }
+
+[[proof]]
+id      = "komga.answers-as-itself"
+title   = "The Komga API is mounted and reports its own claim state"
+fixture = "fixtures/api-v1-claim.json"
+why     = """
+A health endpoint proves a process. This proves it is *this* process:
+`/api/v1/claim` is Komga's own, answers an anonymous caller, and returns a
+boolean about whether an administrator has been created yet. Something else
+serving port 25600 does not answer it.
+"""
+request = { method = "GET", path = "/api/v1/claim" }
+expect  = { status = 200, json_has_keys = ["isClaimed"], json_types = { isClaimed = "bool" } }
+
+[[proof]]
+id      = "komga.library-is-guarded"
+title   = "An anonymous reader on the LAN cannot list the libraries"
+fixture = "fixtures/api-v1-libraries-anonymous.json"
+why     = """
+This service declares `bind = "lan"` and `[wiring].hostname`, which together put
+it in front of every device on the household network under a name they can
+remember. What makes that safe is Komga refusing an unauthenticated read, and
+nothing else here would notice if it stopped: the health probe would still pass,
+the API would still answer, and the library list would be public.
+
+A refusal is the pass. This fails if it ever returns 200.
+"""
+request = { method = "GET", path = "/api/v1/libraries" }
+expect  = { status = 401 }
