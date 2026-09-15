@@ -8,8 +8,9 @@ Guidance for any AI agent working in this repo.
 
 ## What this repo is
 
-A plugin's source: the manifest lemonfiber installs Komga from, the proofs it
-declares, and the recorded responses those proofs run against. It is not the
+A plugin's source: the manifest lemonfiber installs Komga from — which carries
+the service, what it can do, how the stack reaches it and the proofs that must
+pass — and the recorded responses those proofs run against. It is not the
 reviewed catalogue — that is `lemonfiber-plugins` — and it is not a fork of the
 stack. Contract:
 [plugin-manifest](https://github.com/lemonfiber/spec/blob/main/20-architecture/contracts/plugin-manifest.md).
@@ -20,6 +21,9 @@ stack. Contract:
   contributed code is never run, under any opt-in (`F3-R6`). The Python under
   `.github/interim/` is CI harness, is not part of what an operator installs,
   and is deleted when lemonfiber's own verbs replace it.
+- **The plugin is `plugin.toml` and `fixtures/`.** Proofs live in the manifest,
+  not beside it: an installer reads one file, and a proof the installer never
+  reads cannot be what `F3-R4` refuses an install over.
 - **The image is named by digest** (`F3-R8`). A tag is a name its publisher can
   repoint; it is carried beside the digest as a readable label and is never
   resolved. Moving the pin means re-recording every fixture against the new
@@ -39,22 +43,27 @@ stack. Contract:
 
 ## What is deliberately absent
 
-`media_types`, because the vocabulary has no value for comics and misfiling them
-as books would be a lie something later sorts by. A `[[proof]]` block in
-`plugin.toml`, because `schema_version = 1` has none and an unrecognised
-declaration is refused. A minimum lemonfiber version, because `ARCH-R89` forbids
-one — `[requires].capabilities` is what says what this needs, and `targets.toml`
-carries the CI pin that is a different fact.
+`[[secret]]` and `[[override]]`: Komga creates its own administrator and
+lemonfiber captures nothing from it, and this plugin changes no bundled setting.
+A dashboard widget, because a widget needs a credential and a credential needs a
+recipe (`F8`, `0.18.0`). A minimum lemonfiber version, because `ARCH-R89` forbids
+one — `[requires].capabilities` says what this needs, and `targets.toml` carries
+the CI pin, which is a different fact.
+
+Every `provides` entry is namespaced and therefore inert, because `F4-R2` has not
+published a core vocabulary to claim from. Do not "fix" that by inventing a
+core-looking name; `vocabulary_gate.py` fails when the real one lands.
 
 ## Checks
 
 ```
 python3 .github/interim/validate.py --self-test   # the gate refuses what it should
 python3 .github/interim/validate.py              # the manifest against the contract
-python3 .github/interim/prove.py                  # proofs against the recordings
+python3 .github/interim/prove.py                  # the manifest's proofs, against the recordings
 python3 .github/interim/prove.py --against http://127.0.0.1:25600   # against a live one
 python3 .github/interim/image_gate.py             # the digest, its tag, its signature state
 python3 .github/interim/schema_gate.py            # fails the day the real schema lands
+python3 .github/interim/vocabulary_gate.py        # fails the day the capability vocabulary lands
 ```
 
 ## Before you open a PR
