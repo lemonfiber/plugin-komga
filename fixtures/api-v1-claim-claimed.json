@@ -1,0 +1,17 @@
+{
+  "recorded_from": "ghcr.io/gotson/komga@sha256:6c2a967bbe9acefd05933b2eb498f34afe96a83c6f7f8ab0acb512a1bb3ab50f",
+  "note": "The same endpoint as api-v1-claim.json, on an instance where an administrator has been created. What the contributed check asks every time the doctor runs; the other recording is the state that check exists to catch.",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/claim"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json"
+    },
+    "json": {
+      "isClaimed": true
+    }
+  }
+}

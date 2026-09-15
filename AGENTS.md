@@ -45,25 +45,49 @@ stack. Contract:
 
 `[[secret]]` and `[[override]]`: Komga creates its own administrator and
 lemonfiber captures nothing from it, and this plugin changes no bundled setting.
-A dashboard widget, because a widget needs a credential and a credential needs a
-recipe (`F8`, `0.18.0`). A minimum lemonfiber version, because `ARCH-R89` forbids
-one — `[requires].capabilities` says what this needs, and `targets.toml` carries
-the CI pin, which is a different fact.
+`[[recipe]]`, because nothing here needs one — and a manifest declaring one asks
+for `recipe.run` by name, so a lemonfiber that cannot run one refuses it rather
+than parsing the block and skipping it. A dashboard widget, because a widget
+needs a credential and a credential needs a recipe (`F8`, `0.18.0`). A minimum
+lemonfiber version, because `ARCH-R89` forbids one — `[requires].capabilities`
+says what this needs, and `targets.toml` carries the CI pin, which is a different
+fact.
 
-Every `provides` entry is namespaced and therefore inert, because `F4-R2` has not
-published a core vocabulary to claim from. Do not "fix" that by inventing a
-core-looking name; `vocabulary_gate.py` fails when the real one lands.
+## What it fills, and what it adds
+
+`media.serve` is a **core** name out of lemonfiber's published vocabulary, and it
+is what makes this plugin a candidate for anything that asks for a library server
+rather than naming one. It was `komga:comics-serve` until that vocabulary
+existed, and an inert claim is what it was. A core name is demonstrated rather
+than asserted: the `[[claim]]` binds every probe the vocabulary declares for it,
+and a binding weaker than the probe permits is refused naming the probe.
+
+`komga:opds` and `komga:kobo-sync` stay this plugin's own. Nothing asks for
+them, so nothing else would notice if they stopped being true — which is why each
+carries a proof of its own here.
+
+The two contributed checks ask something no credential is needed for, and
+deliberately: a check that could only be answered by signing in would report
+`unrun` on every doctor run until recipes arrive, and a check that quietly never
+runs is worse than one that fails.
+
+## The harness is not this repository's
+
+`.github/interim/` is written in
+[`plugin-template`](https://github.com/lemonfiber/plugin-template) and copied
+here byte for byte. The `harness` job fails when the two differ. Change it there
+and copy it here; changing it here fails.
 
 ## Checks
 
 ```
 python3 .github/interim/validate.py --self-test   # the gate refuses what it should
 python3 .github/interim/validate.py              # the manifest against the contract
-python3 .github/interim/prove.py                  # the manifest's proofs, against the recordings
+python3 .github/interim/prove.py                  # everything declared, against the recordings
 python3 .github/interim/prove.py --against http://127.0.0.1:25600   # against a live one
 python3 .github/interim/image_gate.py             # the digest, its tag, its signature state
 python3 .github/interim/schema_gate.py            # fails the day the real schema lands
-python3 .github/interim/vocabulary_gate.py        # fails the day the capability vocabulary lands
+python3 .github/interim/vocabulary_gate.py        # every claim, against what lemonfiber publishes now
 ```
 
 ## Before you open a PR

@@ -1,0 +1,38 @@
+{
+  "recorded_from": "ghcr.io/gotson/komga@sha256:6c2a967bbe9acefd05933b2eb498f34afe96a83c6f7f8ab0acb512a1bb3ab50f",
+  "note": "An unauthenticated read of the OPDS catalogue. Komga answers it with an OPDS authentication document rather than a login page, which is what makes this a proof that OPDS is mounted as well as a proof that it is guarded.",
+  "request": {
+    "method": "GET",
+    "path": "/opds/v2/catalog"
+  },
+  "response": {
+    "status": 401,
+    "headers": {
+      "content-type": "application/opds-authentication+json;charset=UTF-8"
+    },
+    "json": {
+      "authentication": [
+        {
+          "type": "http://opds-spec.org/auth/basic",
+          "labels": {
+            "login": "Email",
+            "password": "Password"
+          }
+        }
+      ],
+      "title": "Komga",
+      "id": "http://127.0.0.1:25600/opds/v2/auth",
+      "description": "Enter your email and password to authenticate.",
+      "links": [
+        {
+          "rel": "help",
+          "href": "https://komga.org"
+        },
+        {
+          "rel": "logo",
+          "href": "http://127.0.0.1:25600/android-chrome-512x512.png"
+        }
+      ]
+    }
+  }
+}

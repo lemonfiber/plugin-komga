@@ -1,0 +1,21 @@
+{
+  "recorded_from": "ghcr.io/gotson/komga@sha256:6c2a967bbe9acefd05933b2eb498f34afe96a83c6f7f8ab0acb512a1bb3ab50f",
+  "note": "An unauthenticated read of the catalogue of series. A refusal is the pass: a library server bound to the household network that answered this would be publishing the shape of somebody's collection to every device on it.",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/series"
+  },
+  "response": {
+    "status": 401,
+    "headers": {
+      "content-type": "application/json"
+    },
+    "json": {
+      "timestamp": "2026-09-15T17:13:05.460+00:00",
+      "status": 401,
+      "error": "Unauthorized",
+      "message": "Unauthorized",
+      "path": "/api/v1/series"
+    }
+  }
+}
