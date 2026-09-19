@@ -159,9 +159,9 @@ Proved by running, on `ghcr.io/gotson/komga@sha256:6c2a967b…`:
 Proved only by validating:
 
 - that the manifest conforms — including the wiring, the capability namespacing
-  and the library targeting. There is no published schema to conform *to*, so it
-  is checked against the contract document by hand, and
-  `.github/interim/schema_gate.py` fails the day a real one is published.
+  and the library targeting. It is held to lemonfiber's own generated schema,
+  fetched off its default branch on every run, and then to the capability
+  vocabulary and the extension points it publishes beside it.
 
 **Not proved at all, and not claimed:** that lemonfiber installs this, that the
 proxy stanza is generated, or that the dashboard entry appears. `0.16.0` is the
