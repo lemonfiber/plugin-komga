@@ -92,7 +92,7 @@ request = { method = "GET", path = "/api/v1/series" }
 expect  = { status = 200, json_has_keys = ["content", "totalElements"] }
 fixture = "fixtures/media-serve-catalogue.json"
 
-[wiring]
+[[wiring]]
 # Where the household reaches it once Caddy is running. A label in front of the
 # operator's own domain, never an address — comics.example.com rather than
 # komga.example.com, because the household knows what it went there for and not

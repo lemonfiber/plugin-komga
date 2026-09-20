@@ -1,60 +1,60 @@
 {
   "lemonfiber": "0.16.0",
-  "against": "fixtures",
+  "against": "recordings",
   "proofs": [
-    {
-      "id": "komga.serves",
-      "kind": "proof",
-      "outcome": "passed",
-      "detail": "HTTP 200, and the body it declares"
-    },
-    {
-      "id": "komga.answers-as-itself",
-      "kind": "proof",
-      "outcome": "passed",
-      "detail": "HTTP 200, and the body it declares"
-    },
-    {
-      "id": "komga.library-is-guarded",
-      "kind": "proof",
-      "outcome": "passed",
-      "detail": "HTTP 401, and the body it declares"
-    },
-    {
-      "id": "komga.opds-is-mounted-and-guarded",
-      "kind": "proof",
-      "outcome": "passed",
-      "detail": "HTTP 401, and the body it declares"
-    },
-    {
-      "id": "komga.kobo-sync-refuses-an-unknown-key",
-      "kind": "proof",
-      "outcome": "passed",
-      "detail": "HTTP 403, and the body it declares"
-    },
     {
       "id": "media.serve/guarded",
       "kind": "probe",
       "outcome": "passed",
-      "detail": "HTTP 401, and the body it declares"
+      "detail": "the recording answers what it declares"
     },
     {
       "id": "media.serve/catalogue",
       "kind": "probe",
       "outcome": "passed",
-      "detail": "HTTP 200, and the body it declares"
+      "detail": "the recording answers what it declares"
+    },
+    {
+      "id": "komga.serves",
+      "kind": "proof",
+      "outcome": "passed",
+      "detail": "the recording answers what it declares"
+    },
+    {
+      "id": "komga.answers-as-itself",
+      "kind": "proof",
+      "outcome": "passed",
+      "detail": "the recording answers what it declares"
+    },
+    {
+      "id": "komga.library-is-guarded",
+      "kind": "proof",
+      "outcome": "passed",
+      "detail": "the recording answers what it declares"
+    },
+    {
+      "id": "komga.opds-is-mounted-and-guarded",
+      "kind": "proof",
+      "outcome": "passed",
+      "detail": "the recording answers what it declares"
+    },
+    {
+      "id": "komga.kobo-sync-refuses-an-unknown-key",
+      "kind": "proof",
+      "outcome": "passed",
+      "detail": "the recording answers what it declares"
     },
     {
       "id": "komga:claimed",
       "kind": "check",
       "outcome": "passed",
-      "detail": "HTTP 200, and the body it declares"
+      "detail": "the recording answers what it declares"
     },
     {
       "id": "komga:opds-guarded",
       "kind": "check",
       "outcome": "passed",
-      "detail": "HTTP 401, and the body it declares"
+      "detail": "the recording answers what it declares"
     }
   ]
 }
