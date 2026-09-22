@@ -92,7 +92,12 @@ request = { method = "GET", path = "/api/v1/series" }
 expect  = { status = 200, json_has_keys = ["content", "totalElements"] }
 fixture = "fixtures/media-serve-catalogue.json"
 
-[wiring]
+# A list, and one entry, because wiring is a fact about a service rather than
+# about a plugin (ARCH-R127). This plugin declares one service, so the entry
+# names none: there is nothing to choose between. A plugin declaring two would
+# have to say which, because a hostname left to be inferred is an inference
+# about which of them the household reaches.
+[[wiring]]
 # Where the household reaches it once Caddy is running. A label in front of the
 # operator's own domain, never an address — comics.example.com rather than
 # komga.example.com, because the household knows what it went there for and not
@@ -141,7 +146,7 @@ id      = "komga.library-is-guarded"
 title   = "An anonymous reader on the LAN cannot list the libraries"
 fixture = "fixtures/api-v1-libraries-anonymous.json"
 why     = """
-This service declares `bind = "lan"` and `[wiring].hostname`, which together put
+This service declares `bind = "lan"` and a `[[wiring]]` `hostname`, which together put
 it in front of every device on the household network under a name they can
 remember. What makes that safe is Komga refusing an unauthenticated read, and
 nothing else here would notice if it stopped: the health probe would still pass,
