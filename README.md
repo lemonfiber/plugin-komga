@@ -36,7 +36,7 @@ provides    = ["media.serve", "komga:opds", "komga:kobo-sync"]
 [[claim]]
 capability = "media.serve"          # and the probes that demonstrate it
 
-[wiring]
+[[wiring]]
 hostname        = "comics"
 dashboard_group = "Library"
 ```
@@ -47,7 +47,7 @@ of it rather than leaving the operator to find `/data/media/comics` in Komga's
 own settings on first run. The stack's media-type vocabulary gained `comics` for
 exactly this ([lemonfiber-media-stack#79](https://github.com/lemonfiber/lemonfiber-media-stack/pull/79)).
 
-**It is wired, not just installed.** `[wiring]` is how the household reaches it:
+**It is wired, not just installed.** `[[wiring]]` is how the household reaches it:
 `comics.your-domain` through the bundled proxy, and an entry in the dashboard's
 Library group beside Calibre-Web and Audiobookshelf. lemonfiber writes both — a
 plugin supplies no proxy stanza and no dashboard entry for the same reason it
