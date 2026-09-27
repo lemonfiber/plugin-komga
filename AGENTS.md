@@ -32,8 +32,10 @@ stack. Contract:
 - **A proof asserts a body, never only a status.** Docker's port proxy accepts
   before anything inside is listening, so a status-only proof passes against a
   container that has been emptied.
-- **A proof that could not be run is unproven** (`F3-R5`), never a pass. The
-  three verdicts stay three.
+- **A proof that could not be run is unproven** (`F3-R5`), never a pass, and
+  no declaration excuses it (`F10-R16`). Failing as declared is its own
+  verdict, written apart from passed and failed and never counted as passed
+  (`F10-R13`).
 - **No field beyond the contract's set.** A manifest carrying one is refused by
   name rather than ignored (`ARCH-R84`), so adding one does not extend the
   format — it breaks this plugin.
