@@ -7,6 +7,13 @@ your lemonfiber stack, where everyone on your home network can reach it.
 Without it, comics stay folders of images, opened one file at a time with
 nothing remembering where you were.
 
+> **lemonfiber cannot install this plugin yet.** It asks lemonfiber to add a
+> service and to watch its health (`service.add` and `service.health.http`), and
+> no lemonfiber release offers a plugin either. lemonfiber 0.16.0 refuses the
+> install and names both; `--dry-run` shows the same refusal and writes nothing.
+> The rest of this page describes what the plugin does once lemonfiber offers
+> them.
+
 ## What you get
 
 - **Komga 1.26.3**, running as a service in your stack.
@@ -43,9 +50,12 @@ Get a copy of this repository, then ask lemonfiber what installing it would do.
 
 ```sh
 git clone https://github.com/lemonfiber/plugin-komga.git
-lemonfiber plugin install plugin-komga --dry-run
-lemonfiber plugin install plugin-komga
+lemonfiber plugin install ./plugin-komga --dry-run
+lemonfiber plugin install ./plugin-komga
 ```
+
+Keep the `./`: it marks a directory on this machine rather than the name of a
+plugin in the catalogue.
 
 The [lemonfiber plugin catalogue](https://github.com/lemonfiber/lemonfiber-plugins/blob/main/plugins/komga.toml)
 records the revision of this repository that a person reviewed, as `revision`.
@@ -65,8 +75,9 @@ When you install, lemonfiber:
 5. Records Komga as installed only when all of that holds. If anything fails, it
    puts back everything it wrote, and your machine is as it was.
 
-`lemonfiber plugin installed` lists what is installed, where each plugin came
-from, and how each of its services is reached.
+[Installing a plugin](https://docs.lemonfiber.app/plugins/installing-a-plugin/)
+explains each step in more detail. `lemonfiber plugin installed` lists what is
+installed, where each plugin came from, and how each of its services is reached.
 
 ## Set it up
 
@@ -120,8 +131,8 @@ the newer revision the catalogue lists, then update from it:
 
 ```sh
 git -C plugin-komga pull
-lemonfiber plugin update plugin-komga --dry-run
-lemonfiber plugin update plugin-komga
+lemonfiber plugin update ./plugin-komga --dry-run
+lemonfiber plugin update ./plugin-komga
 ```
 
 The new version is checked and proved the way an install is. Your machine is on
