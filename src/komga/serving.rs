@@ -33,6 +33,7 @@ impl Library for Komga {
     }
 
     async fn rescan(&self) -> Result<(), Failure> {
+        self.furnished().await?;
         for library in self.libraries().await? {
             self.done(
                 Method::Post,

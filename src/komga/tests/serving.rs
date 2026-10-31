@@ -5,7 +5,7 @@ use lemonfiber_ports::service::{
     Declaring as _, Encrypting as _, Fronted as _, Library as _, Upkeep as _,
 };
 
-use super::{asked, komga, refused_saying, signed_in_and, unsupported, LIBRARIES};
+use super::{asked, body_of, komga, refused_saying, signed_in_and, unsupported, FILED, LIBRARIES};
 
 #[tokio::test]
 async fn a_rescan_looks_over_every_library_komga_holds() {
@@ -16,6 +16,11 @@ async fn a_rescan_looks_over_every_library_komga_holds() {
             "/api/v1/libraries",
             Answer::reply(200, LIBRARIES),
         ),
+        (
+            Method::Post,
+            "/api/v1/filesystem",
+            Answer::reply(200, r#"{"parent":"/data","directories":[],"files":[]}"#),
+        ),
     ]);
     assert!(komga(&fake).rescan().await.is_ok());
     assert_eq!(
@@ -24,6 +29,7 @@ async fn a_rescan_looks_over_every_library_komga_holds() {
             .filter(|(method, _)| *method == Method::Post)
             .collect::<Vec<_>>(),
         [
+            (Method::Post, "/api/v1/filesystem".to_owned()),
             (
                 Method::Post,
                 "/api/v1/libraries/0S31NXXY4VJJX/scan".to_owned()
@@ -37,6 +43,35 @@ async fn a_rescan_looks_over_every_library_komga_holds() {
 }
 
 #[tokio::test]
+async fn a_rescan_gives_komga_the_comics_library_once_the_data_root_files_comics() {
+    let fake = signed_in_and(vec![
+        (Method::Post, "/scan", Answer::reply(202, "")),
+        (Method::Get, "/api/v1/libraries", Answer::reply(200, "[]")),
+        (
+            Method::Post,
+            "/api/v1/filesystem",
+            Answer::reply(200, FILED),
+        ),
+        (Method::Post, "/api/v1/libraries", Answer::reply(200, "{}")),
+    ]);
+    assert!(komga(&fake).rescan().await.is_ok());
+    assert_eq!(
+        asked(&fake)
+            .into_iter()
+            .filter(|(method, _)| *method == Method::Post)
+            .collect::<Vec<_>>(),
+        [
+            (Method::Post, "/api/v1/filesystem".to_owned()),
+            (Method::Post, "/api/v1/libraries".to_owned()),
+        ]
+    );
+    assert_eq!(
+        body_of(&fake, "/api/v1/libraries"),
+        Some(serde_json::json!({ "name": "Comics", "root": "/data/media/comics" }))
+    );
+}
+
+#[tokio::test]
 async fn a_rescan_komga_refuses_is_refused() {
     let fake = signed_in_and(vec![
         (Method::Post, "/scan", Answer::reply(500, "")),
@@ -44,6 +79,11 @@ async fn a_rescan_komga_refuses_is_refused() {
             Method::Get,
             "/api/v1/libraries",
             Answer::reply(200, LIBRARIES),
+        ),
+        (
+            Method::Post,
+            "/api/v1/filesystem",
+            Answer::reply(200, r#"{"parent":"/data","directories":[],"files":[]}"#),
         ),
     ]);
     assert!(komga(&fake).rescan().await.is_err());

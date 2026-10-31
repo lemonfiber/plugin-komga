@@ -1,6 +1,7 @@
 //! Who holds Komga's administrator, and claiming it. A fresh Komga holds no account, and
 //! the first caller to ask makes the administrator: claiming it makes that administrator
-//! the one lemonfiber minted, then gives Komga the comics library the data root holds.
+//! the one lemonfiber minted, then gives Komga the comics library where the data root
+//! files comics.
 
 use async_trait::async_trait;
 use lemonfiber_ports::http::Method;
@@ -18,8 +19,23 @@ const PASSWORD: &str = "X-Komga-Password";
 /// The library a claim gives Komga, and where the data root files comics.
 pub(super) const COMICS: &str = "Comics";
 
-/// Where the data root files comics, inside Komga's container.
+/// Where the data root files its media, inside Komga's container.
+const MEDIA_ROOT: &str = "/data/media";
+
+/// Where the data root files comics, beneath [`MEDIA_ROOT`].
 pub(super) const COMICS_ROOT: &str = "/data/media/comics";
+
+const FILESYSTEM: &str = "/api/v1/filesystem";
+
+#[derive(Deserialize)]
+struct Listed {
+    directories: Vec<Directory>,
+}
+
+#[derive(Deserialize)]
+struct Directory {
+    path: String,
+}
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -60,14 +76,31 @@ impl Komga {
         }
     }
 
-    /// Give Komga the comics library, unless one already reads the data root's comics.
-    async fn furnished(&self) -> Result<(), Failure> {
+    /// Whether the data root files comics, as Komga lists the media directory.
+    async fn comics_filed(&self) -> Result<bool, Failure> {
+        let asked = serde_json::json!({ "path": MEDIA_ROOT, "showFiles": false }).to_string();
+        let response = self.as_admin(Method::Post, FILESYSTEM, Some(asked)).await?;
+        let listed: Listed = self
+            .endpoint
+            .decode(&response, "what the data root files could not be read")?;
+        Ok(listed
+            .directories
+            .iter()
+            .any(|directory| directory.path.trim_end_matches('/') == COMICS_ROOT))
+    }
+
+    /// Give Komga the comics library where the data root files comics, unless one
+    /// already reads them.
+    pub(super) async fn furnished(&self) -> Result<(), Failure> {
         if self
             .libraries()
             .await?
             .iter()
             .any(|library| library.root.trim_end_matches('/') == COMICS_ROOT)
         {
+            return Ok(());
+        }
+        if !self.comics_filed().await? {
             return Ok(());
         }
         let asked = serde_json::json!({ "name": COMICS, "root": COMICS_ROOT }).to_string();
