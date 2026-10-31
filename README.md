@@ -7,13 +7,6 @@ your lemonfiber stack, where everyone on your home network can reach it.
 Without it, comics stay folders of images, opened one file at a time with
 nothing remembering where you were.
 
-> **lemonfiber cannot install this plugin yet.** It asks lemonfiber to add a
-> service and to watch its health (`service.add` and `service.health.http`), and
-> no lemonfiber release offers a plugin either. lemonfiber 0.16.0 refuses the
-> install and names both; `--dry-run` shows the same refusal and writes nothing.
-> The rest of this page describes what the plugin does once lemonfiber offers
-> them.
-
 ## What you get
 
 - **Komga 1.26.3**, running as a service in your stack.
@@ -170,12 +163,14 @@ Two things stay:
 
 ## Licence
 
-The plugin data in this repository is under the Hippocratic License 3.0
+The plugin data and the adapter in this repository are under the Hippocratic License 3.0
 (HL3-CORE); see [LICENSE](LICENSE). Komga itself is under the MIT licence and
 is not distributed here: this repository names an image, it does not contain
 one.
 
 ## Working on this plugin
 
-How the manifest is built, what each proof establishes, and how to run the
-checks CI runs: [docs/development.md](docs/development.md).
+The repository also holds `komga-adapter`, the adapter that speaks lemonfiber's
+`owner.claim` and `media.serve` contracts in front of Komga, built and published
+from here. `plugin.toml` does not run it yet. How to work on either, and the
+checks CI runs: [AGENTS.md](AGENTS.md).

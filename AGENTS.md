@@ -9,91 +9,52 @@
 
 ## What this repo is
 
-A plugin's source: the manifest lemonfiber installs Komga from — which carries
-the service, what it can do, how the stack reaches it and the proofs that must
-pass — and the recorded responses those proofs run against. It is not the
-reviewed catalogue — that is `lemonfiber-plugins` — and it is not a fork of the
-stack. Contract:
-[plugin-manifest](https://github.com/lemonfiber/spec/blob/main/20-architecture/contracts/plugin-manifest.md).
+Komga as a first-party lemonfiber plugin: `plugin.toml` and the adapter that
+speaks the `owner.claim@1` and `media.serve@1` contracts in front of Komga. The
+adapter is the Rust crate at the root, built on `lemonfiber-adapter-kit` from the
+core at the commit `Cargo.toml` pins, into the image the `Dockerfile` builds.
+`release.yml` publishes that image from every commit on `main` and from the
+train's tag, through spec's reusable `adapter-release`. `plugin.toml` runs Komga
+alone and does not run the adapter yet; its proofs' recordings are under
+`fixtures/`.
 
 ## The rules you cannot break
 
-- **Nothing here executes.** A plugin is declarative data (`F3-R1`), and
-  contributed code is never run, under any opt-in (`F3-R6`). The Python under
-  `.github/reader/` is CI harness and is not part of what an operator installs:
-  it fetches the lemonfiber release `targets.toml` names and asks it.
-- **The plugin is `plugin.toml` and `fixtures/`.** Proofs live in the manifest,
-  not beside it: an installer reads one file, and a proof the installer never
-  reads cannot be what `F3-R4` refuses an install over.
-- **The image is named by digest** (`F3-R8`). A tag is a name its publisher can
-  repoint; it is carried beside the digest as a readable label and is never
-  resolved. Moving the pin means re-recording every fixture against the new
-  image in the same change — a recording that describes a different image is
-  worse than no recording.
-- **A proof asserts a body, never only a status.** Docker's port proxy accepts
-  before anything inside is listening, so a status-only proof passes against a
-  container that has been emptied.
-- **A proof that could not be run is unproven** (`F3-R5`), never a pass, and
-  no declaration excuses it (`F10-R16`). Failing as declared is its own
-  verdict, written apart from passed and failed and never counted as passed
-  (`F10-R13`).
-- **No field beyond the contract's set.** A manifest carrying one is refused by
-  name rather than ignored (`ARCH-R84`), so adding one does not extend the
-  format — it breaks this plugin.
-- **Nothing official about this plugin is a privilege.** If it ever needs one to
-  work, that is a defect in the plugin model and belongs in a spec issue, not in
-  a field here.
-
-## What is deliberately absent
-
-`[[secret]]` and `[[override]]`: Komga creates its own administrator and
-lemonfiber captures nothing from it, and this plugin changes no bundled setting.
-`[[recipe]]`, because nothing here needs one — and a manifest declaring one asks
-for `recipe.run` by name, so a lemonfiber that cannot run one refuses it rather
-than parsing the block and skipping it. A dashboard widget, because a widget
-needs a credential and a credential needs a recipe (`F8`, `0.18.0`). A minimum
-lemonfiber version, because `ARCH-R89` forbids one — `[requires].capabilities`
-says what this needs, and `targets.toml` carries the CI pin, which is a different
-fact.
-
-## What it fills, and what it adds
-
-`media.serve` is a **core** name out of lemonfiber's published vocabulary, and it
-is what makes this plugin a candidate for anything that asks for a library server
-rather than naming one. It was `komga:comics-serve` until that vocabulary
-existed, and an inert claim is what it was. A core name is demonstrated rather
-than asserted: the `[[claim]]` binds every probe the vocabulary declares for it,
-and a binding weaker than the probe permits is refused naming the probe.
-
-`komga:opds` and `komga:kobo-sync` stay this plugin's own. Nothing asks for
-them, so nothing else would notice if they stopped being true — which is why each
-carries a proof of its own here.
-
-The two contributed checks ask something no credential is needed for, and
-deliberately: a check that could only be answered by signing in would report
-`unrun` on every doctor run until recipes arrive, and a check that quietly never
-runs is worse than one that fails.
-
-## The harness is not this repository's
-
-`.github/reader/` is written in
-[`plugin-template`](https://github.com/lemonfiber/plugin-template) and copied
-here byte for byte. The `harness` job fails when the two differ. Change it there
-and copy it here; changing it here fails.
+- **The plugin id is the service's id** (`ARCH-R266`).
+- **No Python here.** The reader is spec's `first-party-plugin` workflow's.
+- **No `unwrap`, `expect`, `panic` or indexing** outside tests. The lints in
+  `Cargo.toml` are the core's.
+- **The adapter never writes its credentials.** lemonfiber mints the
+  administrator's address and password and writes them into the adapter's
+  `upstream.json` as `username` and `password` (`ARCH-R315`, `ARCH-R317`). The
+  address is minted as `"email"`, the shape Komga's claim accepts. The adapter
+  reads them for every sign-in, carries the session Komga opens afterwards, and
+  never logs them.
+- **A claim changes nothing Komga already holds** (`ARCH-R328`): only a Komga
+  holding no account is claimed, through its own claim API, and one claimed by
+  anybody else is answered as theirs. The claim that makes the administrator
+  then gives Komga a `Comics` library at `/data/media/comics`, unless one already
+  reads that folder.
+- **Nothing is asked for a member.** Komga does not speak `identity.source`, so
+  every `media.serve` operation naming a member answers `unsupported`, as does
+  everything else it cannot do (`ARCH-R334`).
+- **A key is found again by Komga's own record of its sign-in.** Komga shows a
+  key once and refuses two under one name, so a second key for an app is filed as
+  `<app> #2`, and `revoke` reads the key's id from the authentication activity
+  Komga records for one request the key signs in, by the user agent that request
+  alone carried.
+- **The core's crates move with the train.** The `rev` in `Cargo.toml` is the
+  core commit `targets.toml` names, the same for every `lemonfiber-*` crate.
+- **Moving Komga's digest** means recording every response again against the new
+  image in the same change, moving `RELEASE` and `DIGEST` in `src/adapter.rs`
+  with it, and committing the `proofs.json` the checks write.
 
 ## Checks
 
 ```
-just ci        # every gate CI runs over this repository, in CI's order
+just ci
 ```
 
-`just` lists the recipes `ci` is made of. The jobs it does not run are named in
-the `justfile` beside the recipe, with what covers each.
-
-`reader.py proofs` writes `proofs.json` on every run, and CI then runs
-`git diff --exit-code proofs.json`, so a run that reports everything passing is
-still refused when the committed report is not the one it wrote.
-
-## Before you open a PR
-
-`just ci` turns this clone's git hooks on as its first step.
+The gates that need nothing but this tree. The plugin verdict and the
+recordings run in CI; `just recordings` takes the recordings again locally, with
+Docker.
