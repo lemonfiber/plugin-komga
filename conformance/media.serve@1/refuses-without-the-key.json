@@ -1,0 +1,6 @@
+{
+  "recorded_from": "ghcr.io/gotson/komga@sha256:6c2a967bbe9acefd05933b2eb498f34afe96a83c6f7f8ab0acb512a1bb3ab50f",
+  "note": "Asked without the plugin's key: the kit refuses it before the adapter is reached.",
+  "request": {"method": "POST", "path": "/lemonfiber/media.serve/v1/signed_in", "accept": "application/json"},
+  "response": {"status": 401}
+}

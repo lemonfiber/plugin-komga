@@ -1,0 +1,10 @@
+{
+  "recorded_from": "ghcr.io/gotson/komga@sha256:6c2a967bbe9acefd05933b2eb498f34afe96a83c6f7f8ab0acb512a1bb3ab50f",
+  "note": "An id the freshly claimed Komga holds nothing under: the adapter asks it for the picture and answers that there is none.",
+  "request": {"method": "POST", "path": "/lemonfiber/media.serve/v1/picture", "accept": "application/json"},
+  "response": {
+    "status": 200,
+    "headers": {"content-type": "application/json"},
+    "body_starts_with": "null"
+  }
+}

@@ -13,14 +13,20 @@ nothing remembering where you were.
 - **An address the household can remember:** `comics.<your domain>`, through the
   stack's proxy. Komga also answers on port 25600 of this machine.
 - **A link on the stack's dashboard**, in the Library group.
+- **An administrator nobody else can take.** lemonfiber makes Komga's
+  administrator itself, with an email address and password it mints, before
+  anyone on your network can open Komga.
+- **Your comics as a library.** Komga is given a `Comics` library reading
+  `media/comics` in your data root, as soon as that folder exists.
 - **An OPDS catalogue and Kobo sync**, for reading apps and Kobo e-readers. Both
   ask for a Komga account.
-- **Two more checks in `lemonfiber doctor`**, each with a fix when it fails:
+- **One more check in `lemonfiber doctor`**, with a fix when it fails:
 
 | Check | What it notices |
 | --- | --- |
-| Komga has an administrator, so nobody else can become one | Nobody has created Komga's administrator account yet, so the first person on your network to open Komga becomes the administrator |
 | The OPDS catalogue is not readable by the household network | Anyone on your network can list and download the library through OPDS without signing in |
+
+Whether Komga's administrator is lemonfiber's is one of the doctor's own checks.
 
 ## What it needs
 
@@ -30,11 +36,10 @@ nothing remembering where you were.
   `lemonfiber setup` first if you have not. Installing a plugin is refused on a
   machine with no stack.
 - **Port 25600 free** on this machine.
-- **Disk space** for the Komga image, and for Komga's own data in
-  `config/komga` in your stack directory. Your comics stay in your data root.
-- **Access to `ghcr.io`** the first time Komga starts, to download the image.
-- **No accounts anywhere else.** You create Komga's administrator account in
-  Komga itself.
+- **Disk space** for the Komga image and its adapter's, and for Komga's own data
+  in `config/komga` in your stack directory. Your comics stay in your data root.
+- **Access to `ghcr.io`** the first time Komga starts, to download both images.
+- **No accounts anywhere else.** Komga's administrator lives in Komga itself.
 
 ## Install
 
@@ -61,9 +66,10 @@ When you install, lemonfiber:
    conform, it names every problem at once and changes nothing.
 2. Writes Komga's container, its configuration directory, a `comics` site for
    the proxy and a dashboard entry, and records each change as it makes it.
-3. Starts Komga and asks it the questions this plugin declares, to show it is
-   Komga, that it answers, and that it refuses to show the library to someone
-   who has not signed in.
+3. Starts Komga and its adapter, claims Komga with the administrator it minted,
+   and asks the questions this plugin declares, to show it is Komga, that it
+   answers, and that it refuses to show the library to someone who has not
+   signed in.
 4. Runs the stack's own checks before and after, and compares the two.
 5. Records Komga as installed only when all of that holds. If anything fails, it
    puts back everything it wrote, and your machine is as it was.
@@ -74,14 +80,14 @@ installed, where each plugin came from, and how each of its services is reached.
 
 ## Set it up
 
-1. **Create the administrator account first.** Open Komga at
-   `comics.<your domain>`, or at port 25600 of this machine, and create the
-   account before anyone else does. Until somebody does, the first person on
-   your network to open Komga becomes its administrator, and `lemonfiber doctor`
-   reports it.
-2. **Add your comics as a library.** Komga sees your data root at `/data`. Put
-   your comics in a folder there, for example `media/comics`, and add
-   `/data/media/comics` as a library in Komga.
+1. **Sign in as the administrator.** Open Komga at `comics.<your domain>`, or at
+   port 25600 of this machine. `lemonfiber credentials` lists the email address
+   and password lemonfiber minted for it, and
+   `lemonfiber credentials --reveal <name>` prints one, asking first.
+2. **Put your comics in `media/comics`.** Komga sees your data root at `/data`.
+   Where `media/comics` is there when lemonfiber claims Komga, Komga is given the
+   `Comics` library then; where it is not yet, Komga is given it at the next
+   rescan after the folder appears.
 3. **Connect your reading apps.** Komga's OPDS catalogue is at
    `/opds/v2/catalog` on the same address. A Kobo e-reader syncs with an API
    key that belongs to a Komga account.
@@ -94,7 +100,9 @@ container lemonfiber writes:
 | What | Where |
 | --- | --- |
 | Komga's container | `compose/plugins/komga.yml`, in a Compose profile of its own, `plugin-komga` |
+| The adapter's container | The same file and profile, as `komga-adapter` |
 | Komga's own data | `config/komga`, which Komga sees as `/config` |
+| Komga's administrator | Its email address and password, minted by lemonfiber and kept in the plugin's secrets file |
 | Your library | Your whole data root, which Komga sees as `/data`, with permission to write |
 | Network | Port 25600 on the address your household services use (`LAN_BIND`, every interface unless you narrowed it) |
 | Proxy | A `comics` site in `config/caddy/Caddyfile` |
@@ -106,14 +114,16 @@ of proxy configuration.
 
 ## What it sends anywhere
 
-- **The image.** lemonfiber downloads Komga from `ghcr.io/gotson/komga`, pinned
+- **The images.** lemonfiber downloads Komga from `ghcr.io/gotson/komga`, pinned
   to one exact build
-  (`sha256:6c2a967bbe9acefd05933b2eb498f34afe96a83c6f7f8ab0acb512a1bb3ab50f`).
+  (`sha256:6c2a967bbe9acefd05933b2eb498f34afe96a83c6f7f8ab0acb512a1bb3ab50f`),
+  and its adapter from `ghcr.io/lemonfiber/komga-adapter`, pinned the same way.
   If you have switched off downloading with `LEMONFIBER_REACH_REGISTRY`, nothing
-  is downloaded and the image has to be on this machine already.
-- **Nothing else from this plugin.** It names no host outside your stack,
-  captures no password or key, and changes no setting of the services lemonfiber
-  bundles. Its doctor checks ask only your own Komga.
+  is downloaded and the images have to be on this machine already.
+- **Nothing else from this plugin.** It names no host outside your stack, and
+  changes no setting of the services lemonfiber bundles. Its adapter signs in
+  to your own Komga, and nothing else, with the administrator lemonfiber minted.
+  Its doctor check asks only your own Komga.
 - **Komga itself.** What Komga connects to is Komga's own behaviour. This
   plugin does not configure it.
 
@@ -172,5 +182,5 @@ one.
 
 The repository also holds `komga-adapter`, the adapter that speaks lemonfiber's
 `owner.claim` and `media.serve` contracts in front of Komga, built and published
-from here. `plugin.toml` does not run it yet. How to work on either, and the
+from here and run beside Komga by `plugin.toml`. How to work on either, and the
 checks CI runs: [AGENTS.md](AGENTS.md).

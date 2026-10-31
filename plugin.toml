@@ -55,24 +55,42 @@ media_types = ["comics"]
 # and this says where the image expects to find it.
 config_path = "/config"
 
-# What it can do (F4-R1). `media.serve` is a core name out of lemonfiber's
-# published vocabulary, which is what makes this plugin a candidate for anything
-# that asks for a library server rather than naming one — it was `komga:comics-serve`
-# until that vocabulary existed, and an inert claim is what it was. The other two
-# are this plugin's own, namespaced with its id (F4-R4), and are inert until
-# something asks for them; both are nevertheless proved below, because a claim
-# nobody can check is a claim nobody should believe.
-provides = [
-    "komga:opds",
-    "komga:kobo-sync",
-]
+# The adapter that speaks lemonfiber's contracts in front of Komga, as the
+# administrator lemonfiber mints for it (ARCH-R315, ARCH-R328).
+[[service]]
+id          = "komga-adapter"
+name        = "Komga adapter"
+image       = "ghcr.io/lemonfiber/komga-adapter"
+digest      = "sha256:15afc56893fa8d9d2ac2290da8e8fac03afe8bff4abbfc31d66c58ecb49a4ac5"
+tag         = "main-59bad014b64a"
+criticality = "enhancing"
+reaches     = ""
+asks_for    = "Nothing beyond this machine. It answers lemonfiber's owner.claim and media.serve contracts by calling Komga, beside it, as the administrator lemonfiber minted for it."
+config_path = "/config"
+listens     = 8080
+speaks      = ["owner.claim@1", "media.serve@1"]
+fronts      = "komga"
+provides    = ["media.serve"]
+media_types = ["comics"]
+upstream    = { username = { secret = "admin-email" }, password = { secret = "admin-password" } }
+
+[[secret]]
+id     = "admin-email"
+of     = "komga"
+minted = "email"
+why    = "The address of the administrator Komga is claimed for, in the shape Komga's claim accepts, which the adapter in front of it signs in as"
+
+[[secret]]
+id     = "admin-password"
+of     = "komga"
+minted = "password"
+why    = "The password of the administrator Komga is claimed for, which the adapter in front of it signs in with"
 
 # A list, and one entry, because wiring is a fact about a service rather than
-# about a plugin (ARCH-R127). This plugin declares one service, so the entry
-# names none: there is nothing to choose between. A plugin declaring two would
-# have to say which, because a hostname left to be inferred is an inference
-# about which of them the household reaches.
+# about a plugin (ARCH-R127). This plugin declares two services, so the entry
+# says which one the household reaches.
 [[wiring]]
+service         = "komga"
 # Where the household reaches it once Caddy is running. A label in front of the
 # operator's own domain, never an address — comics.example.com rather than
 # komga.example.com, because the household knows what it went there for and not
@@ -92,6 +110,7 @@ capabilities = ["doctor.contribute"]
 
 [[proof]]
 id      = "komga.serves"
+service = "komga"
 title   = "Komga answers as Komga on its declared health path"
 fixture = "fixtures/actuator-health.json"
 why     = """
@@ -105,6 +124,7 @@ expect  = { status = 200, json = { status = "UP" } }
 
 [[proof]]
 id      = "komga.answers-as-itself"
+service = "komga"
 title   = "The Komga API is mounted and reports its own claim state"
 fixture = "fixtures/api-v1-claim.json"
 why     = """
@@ -118,6 +138,7 @@ expect  = { status = 200, json_has_keys = ["isClaimed"], json_types = { isClaime
 
 [[proof]]
 id      = "komga.library-is-guarded"
+service = "komga"
 title   = "An anonymous reader on the LAN cannot list the libraries"
 fixture = "fixtures/api-v1-libraries-anonymous.json"
 why     = """
@@ -134,12 +155,13 @@ expect  = { status = 401 }
 
 [[proof]]
 id      = "komga.opds-is-mounted-and-guarded"
+service = "komga"
 title   = "The OPDS catalogue is served, and refuses a reader who presents nothing"
 fixture = "fixtures/opds-catalog-anonymous.json"
 why     = """
-`komga:opds` is a capability of this plugin's own, which means nothing asks for
-it and nothing else would ever notice if it stopped being true. So it is proved
-here instead.
+The OPDS catalogue is the door a reading app uses rather than a person, and
+nothing else here would notice if it stopped refusing a reader who presents
+nothing.
 
 Komga answers an unauthenticated OPDS request with an OPDS **authentication
 document** — a body naming the scheme a reader should use — rather than with a
@@ -149,75 +171,22 @@ catalogue is mounted, and it is not readable by the household network.
 request = { method = "GET", path = "/opds/v2/catalog" }
 expect  = { status = 401, content_type = "application/opds-authentication+json", json_has_keys = ["authentication", "title"] }
 
-[[proof]]
-id      = "komga.kobo-sync-refuses-an-unknown-key"
-title   = "The Kobo sync endpoint is mounted and refuses a key no account holds"
-fixture = "fixtures/kobo-sync-unknown-key.json"
-why     = """
-The other capability of this plugin's own. A Kobo reader syncs against a path
-carrying an API key, so the endpoint cannot be asked anything without one — and
-the honest way to prove it is there is to ask it with a key that is not.
-
-An image without Kobo sync answers 404 for this path. This one refuses, which is
-the endpoint saying it exists and that the key was wrong.
-"""
-request = { method = "GET", path = "/kobo/not-a-real-api-key/v1/library/sync" }
-expect  = { status = 403, json_has_keys = ["status", "error"], json = { status = 403 } }
-
 # ─── Contributions ───────────────────────────────────────────────────────────
 #
 # A row in a register lemonfiber already runs, never an interpreter of its own
 # (F3-R26). The doctor already runs checks independently, bounds each one, keeps
 # `unverified` distinct from `pass`, and carries a remedy on anything that does
-# not pass. These are two more rows in it, attributed to this plugin wherever
-# they appear.
+# not pass. This is one more row in it, attributed to this plugin wherever it
+# appears. Whether Komga has an administrator is owner.claim's own doctor check,
+# asked of the adapter (ARCH-R329).
 #
-# Both ask something no credential is needed for, and deliberately: a contributed
-# check that could only be answered by signing in would report `unrun` on every
-# doctor run until recipes arrive, and a check that quietly never runs is worse
-# than one that fails.
-
-[[contribution]]
-at        = "doctor.check"
-id        = "komga:claimed"
-title     = "Komga has an administrator, so nobody else can become one"
-category  = "credentials"
-timeout_s = 10
-fixture   = "fixtures/api-v1-claim-claimed.json"
-expected  = [
-    { fixture = "fixtures/api-v1-claim-claimed.json", verdict = "fails", constraint = "json", place = "isClaimed", reason = "The recorder starts a Komga nobody has claimed, so it answers isClaimed: false, the answer this check exists to catch." },
-]
-why       = """
-Komga creates no account at install. Until somebody claims it, the first caller
-to ask becomes the administrator — and this service binds to the household
-network under a name every device on it can reach.
-
-Nothing else here would notice. The health probe passes, the API answers, the
-library list is still refused, and the stack reports green while an unclaimed
-server waits for whoever asks first.
-"""
-request   = { method = "GET", path = "/api/v1/claim" }
-expect    = { status = 200, json = { isClaimed = true } }
-
-[[contribution]]
-at     = "doctor.remedy"
-id     = "komga:claim-it"
-for    = "komga:claimed"
-action = "Open Komga and create the administrator account before anything else reaches it"
-why    = """
-An unclaimed Komga hands administrator to whoever asks first, and everything on
-the household network can ask.
-"""
-detail = """
-The first account created becomes the administrator; there is no second chance
-and no way to tell afterwards whether somebody else took it. If this has been
-reachable for any length of time, recreate the container against an empty
-configuration directory rather than claiming it now.
-"""
+# It asks something no credential is needed for, and deliberately: a check that
+# quietly never runs is worse than one that fails.
 
 [[contribution]]
 at        = "doctor.check"
 id        = "komga:opds-guarded"
+service   = "komga"
 title     = "The OPDS catalogue is not readable by the household network"
 category  = "network"
 timeout_s = 10
