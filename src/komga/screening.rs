@@ -5,6 +5,7 @@
 
 use async_trait::async_trait;
 use lemonfiber_adapter_kit::endpoint::form_encoded;
+use lemonfiber_adapter_kit::picture;
 use lemonfiber_ports::service::{
     Failure, Holds, HowFar, Image, Item, ItemDetail, ItemProgress, Medium, Picture, Playback,
     Screening, PICTURE_MOST,
@@ -21,8 +22,6 @@ const NO_DEVICES: &str = "Komga opens and ends no device's session for lemonfibe
 const NOTHING_PLAYS: &str = "Komga is read, and plays nothing";
 
 const BY_TITLE: &str = "metadata.titleSort,asc";
-
-const PICTURE_PREFIX: &str = "image/";
 
 const DATE_LENGTH: usize = 10;
 
@@ -201,14 +200,10 @@ impl Komga {
                 .endpoint
                 .refused("Komga would not answer the thumbnail"));
         }
-        let Some(media_type) = fetched
-            .header("content-type")
-            .filter(|kind| kind.starts_with(PICTURE_PREFIX))
-            .map(str::to_owned)
-        else {
-            return Ok(None);
-        };
-        Ok(fetched.bytes.map(|bytes| Image { media_type, bytes }))
+        let served = fetched.header("content-type").map(str::to_owned);
+        Ok(fetched
+            .bytes
+            .and_then(|bytes| picture::image(served.as_deref(), bytes)))
     }
 
     async fn poster(&self, id: &str) -> Result<Option<Image>, Failure> {

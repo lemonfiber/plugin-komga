@@ -167,7 +167,7 @@ async fn a_poster_is_the_series_thumbnail_or_else_the_book_s() {
     let series = signed_in_and(vec![(
         Method::Get,
         "/api/v1/series/0S31NZSGWVZD1/thumbnail",
-        Answer::served(200, "image/jpeg", "jpeg-bytes"),
+        Answer::served(200, "image/gif", "GIF89a-bytes"),
     )]);
     assert_eq!(
         komga(&series)
@@ -175,8 +175,8 @@ async fn a_poster_is_the_series_thumbnail_or_else_the_book_s() {
             .await
             .ok(),
         Some(Some(Image {
-            media_type: "image/jpeg".to_owned(),
-            bytes: b"jpeg-bytes".to_vec(),
+            media_type: "image/gif".to_owned(),
+            bytes: b"GIF89a-bytes".to_vec(),
         }))
     );
     let book = signed_in_and(vec![
@@ -188,7 +188,7 @@ async fn a_poster_is_the_series_thumbnail_or_else_the_book_s() {
         (
             Method::Get,
             "/api/v1/books/0S31NZSH4VVWZ/thumbnail",
-            Answer::served(200, "image/png", "png-bytes"),
+            Answer::served(200, "image/webp; charset=binary", "RIFF0000WEBPVP8 "),
         ),
     ]);
     assert_eq!(
@@ -198,24 +198,39 @@ async fn a_poster_is_the_series_thumbnail_or_else_the_book_s() {
             .ok()
             .flatten()
             .map(|image| image.media_type),
-        Some("image/png".to_owned())
+        Some("image/webp".to_owned())
     );
 }
 
 #[tokio::test]
-async fn a_thumbnail_that_is_not_a_picture_is_none_and_a_refusal_is_refused() {
-    let page = signed_in_and(vec![(
-        Method::Get,
-        "/thumbnail",
-        Answer::served(200, "text/html", "<html>"),
-    )]);
-    assert_eq!(
-        komga(&page)
-            .picture(None, "0S31NZSGWVZD1", Picture::Poster)
-            .await
-            .ok(),
-        Some(None)
-    );
+async fn a_thumbnail_that_is_not_a_raster_picture_its_bytes_agree_with_is_none() {
+    for (served, body) in [
+        ("text/html", "<html>"),
+        (
+            "image/svg+xml",
+            r#"<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>"#,
+        ),
+        ("image/png", "<html><script>alert(1)</script></html>"),
+        ("image/gif", "RIFF0000WEBPVP8 "),
+    ] {
+        let page = signed_in_and(vec![(
+            Method::Get,
+            "/thumbnail",
+            Answer::served(200, served, body),
+        )]);
+        assert_eq!(
+            komga(&page)
+                .picture(None, "0S31NZSGWVZD1", Picture::Poster)
+                .await
+                .ok(),
+            Some(None),
+            "{served}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn a_thumbnail_komga_refuses_or_does_not_answer_is_refused() {
     let refusing = signed_in_and(vec![(Method::Get, "/thumbnail", Answer::reply(500, ""))]);
     assert!(komga(&refusing)
         .picture(None, "0S31NZSGWVZD1", Picture::Poster)
@@ -236,7 +251,7 @@ async fn a_thumbnail_refused_for_its_session_is_asked_again_once_signed_in_again
             "/thumbnail",
             vec![
                 Answer::reply(401, ""),
-                Answer::served(200, "image/jpeg", "jpeg-bytes"),
+                Answer::served(200, "image/gif", "GIF89a-bytes"),
             ],
         ),
         (Method::Get, "/api/v2/users/me", vec![super::signed_in()]),
