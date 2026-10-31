@@ -5,6 +5,6 @@
   "response": {
     "status": 200,
     "headers": {"content-type": "application/json"},
-    "json": {"isClaimed": false}
+    "json": {"isClaimed": true}
   }
 }

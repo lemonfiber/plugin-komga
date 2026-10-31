@@ -27,27 +27,6 @@
       "detail": ""
     },
     {
-      "id": "komga.kobo-sync-refuses-an-unknown-key",
-      "kind": "proof",
-      "outcome": "passed",
-      "detail": ""
-    },
-    {
-      "id": "komga:claimed",
-      "kind": "check",
-      "outcome": "failing-as-declared",
-      "detail": "fails as declared on fixtures/api-v1-claim-claimed.json: json at isClaimed held false. The recorder starts a Komga nobody has claimed, so it answers isClaimed: false, the answer this check exists to catch.",
-      "declared": [
-        {
-          "fixture": "fixtures/api-v1-claim-claimed.json",
-          "constraint": "json",
-          "place": "isClaimed",
-          "held": "false",
-          "reason": "The recorder starts a Komga nobody has claimed, so it answers isClaimed: false, the answer this check exists to catch."
-        }
-      ]
-    },
-    {
       "id": "komga:opds-guarded",
       "kind": "check",
       "outcome": "passed",

@@ -1,0 +1,10 @@
+{
+  "recorded_from": "ghcr.io/gotson/komga@sha256:6c2a967bbe9acefd05933b2eb498f34afe96a83c6f7f8ab0acb512a1bb3ab50f",
+  "note": "A key minted for an app as the administrator: Komga shows it once, and the recorder keeps only that one came.",
+  "request": {"method": "POST", "path": "/lemonfiber/media.serve/v1/mint", "accept": "application/json"},
+  "response": {
+    "status": 200,
+    "headers": {"content-type": "application/json"},
+    "json": "<redacted>"
+  }
+}

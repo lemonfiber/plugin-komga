@@ -1,0 +1,12 @@
+{
+  "recorded_from": "ghcr.io/gotson/komga@sha256:6c2a967bbe9acefd05933b2eb498f34afe96a83c6f7f8ab0acb512a1bb3ab50f",
+  "note": "The key just minted, as Komga dates it: when it was made, and never used.",
+  "request": {"method": "POST", "path": "/lemonfiber/media.serve/v1/dated", "accept": "application/json"},
+  "response": {
+    "status": 200,
+    "headers": {"content-type": "application/json"},
+    "json": [
+      {"created": "2026-10-31T18:17:46Z", "last_used": null}
+    ]
+  }
+}
