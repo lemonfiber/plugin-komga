@@ -2,10 +2,11 @@ use std::sync::Arc;
 
 use lemonfiber_fixtures::http::{Answer, Fake};
 use lemonfiber_ports::http::Method;
-use lemonfiber_ports::service::{Failure, Owner, Ownership as _};
+use lemonfiber_ports::service::{Claim, Failure, Owner, Ownership as _};
 
 use super::{an_id, session_in, Komga};
 
+mod furnishing;
 mod keys;
 mod screening;
 mod serving;
@@ -25,7 +26,7 @@ const UNCLAIMED: &str = r#"{"isClaimed":false}"#;
 
 const CLAIMED: &str = r#"{"isClaimed":true}"#;
 
-const FILED: &str = r#"{"parent":"/data","directories":[{"type":"directory","name":"comics","path":"/data/media/comics"}],"files":[]}"#;
+const FILED: &str = r#"{"parent":"/data/media","directories":[{"type":"directory","name":"comics","path":"/data/media/comics"}],"files":[]}"#;
 
 const LIBRARIES: &str = r#"[{"id":"0S31NXXY4VJJX","root":"/data/media/manga"},{"id":"not-an-id","root":"/data/media/x"},{"id":"0S31NXXY4VJJY","root":"/data/media/other"}]"#;
 
@@ -161,13 +162,10 @@ async fn a_session_komga_refuses_is_opened_again_once() {
     assert_eq!(
         held.map(|libraries| libraries
             .into_iter()
-            .map(|library| (library.id, library.root))
+            .map(|library| library.id)
             .collect::<Vec<_>>())
             .ok(),
-        Some(vec![
-            ("0S31NXXY4VJJX".to_owned(), "/data/media/manga".to_owned()),
-            ("0S31NXXY4VJJY".to_owned(), "/data/media/other".to_owned()),
-        ])
+        Some(vec!["0S31NXXY4VJJX".to_owned(), "0S31NXXY4VJJY".to_owned()])
     );
     assert_eq!(
         asked(&fake),
@@ -270,7 +268,7 @@ async fn a_komga_not_answering_yet_is_settling() {
     ] {
         let komga = komga(&fake);
         assert_eq!(komga.owner().await.ok(), Some(Owner::Settling));
-        assert_eq!(komga.claim().await.ok(), Some(Owner::Settling));
+        assert_eq!(komga.claim().await.ok(), Some(Claim::Held(Owner::Settling)));
         assert!(fake.requests().iter().all(|one| one.method == Method::Get));
     }
 }
@@ -319,27 +317,29 @@ async fn a_part_already_held_is_answered_as_it_is_and_never_claimed_again() {
         "/api/v1/claim",
         Answer::reply(200, CLAIMED),
     )]);
-    assert_eq!(komga(&ours).claim().await.ok(), Some(Owner::Ours));
+    assert_eq!(
+        komga(&ours).claim().await.ok(),
+        Some(Claim::Held(Owner::Ours))
+    );
     let theirs = Fake::by_route(vec![
         (Method::Get, "/api/v1/claim", Answer::reply(200, CLAIMED)),
         (Method::Get, "/api/v2/users/me", Answer::reply(401, "")),
     ]);
-    assert_eq!(komga(&theirs).claim().await.ok(), Some(Owner::Theirs));
+    assert_eq!(
+        komga(&theirs).claim().await.ok(),
+        Some(Claim::Held(Owner::Theirs))
+    );
     for fake in [ours, theirs] {
         assert!(fake.requests().iter().all(|one| one.method == Method::Get));
     }
 }
 
 #[tokio::test]
-async fn an_open_komga_is_claimed_with_the_minted_administrator_and_given_the_comics_library() {
+async fn an_open_komga_is_claimed_with_the_minted_administrator_and_given_no_library() {
     let fake = signed_in_and(vec![
         (Method::Get, "/api/v1/claim", Answer::reply(200, UNCLAIMED)),
         (Method::Post, "/api/v1/claim", Answer::reply(200, ME)),
-        (
-            Method::Get,
-            "/api/v1/libraries",
-            Answer::reply(200, LIBRARIES),
-        ),
+        (Method::Get, "/api/v1/libraries", Answer::reply(200, "[]")),
         (
             Method::Post,
             "/api/v1/filesystem",
@@ -347,21 +347,17 @@ async fn an_open_komga_is_claimed_with_the_minted_administrator_and_given_the_co
         ),
         (Method::Post, "/api/v1/libraries", Answer::reply(200, "{}")),
     ]);
-    assert_eq!(komga(&fake).claim().await.ok(), Some(Owner::Ours));
+    assert_eq!(
+        komga(&fake).claim().await.ok(),
+        Some(Claim::Held(Owner::Ours))
+    );
     assert_eq!(
         asked(&fake),
         [
             (Method::Get, "/api/v1/claim".to_owned()),
             (Method::Post, "/api/v1/claim".to_owned()),
             (Method::Get, "/api/v2/users/me".to_owned()),
-            (Method::Get, "/api/v1/libraries".to_owned()),
-            (Method::Post, "/api/v1/filesystem".to_owned()),
-            (Method::Post, "/api/v1/libraries".to_owned()),
         ]
-    );
-    assert_eq!(
-        body_of(&fake, "/api/v1/filesystem"),
-        Some(serde_json::json!({ "path": "/data/media", "showFiles": false }))
     );
     assert_eq!(
         headers_of(&fake, Method::Post, "/api/v1/claim"),
@@ -370,31 +366,6 @@ async fn an_open_komga_is_claimed_with_the_minted_administrator_and_given_the_co
             ("X-Komga-Password".to_owned(), PASSWORD.to_owned()),
         ]
     );
-    assert_eq!(
-        body_of(&fake, "/api/v1/libraries"),
-        Some(serde_json::json!({ "name": "Comics", "root": "/data/media/comics" }))
-    );
-}
-
-#[tokio::test]
-async fn a_comics_library_komga_already_holds_is_not_made_again() {
-    let fake = signed_in_and(vec![
-        (Method::Get, "/api/v1/claim", Answer::reply(200, UNCLAIMED)),
-        (Method::Post, "/api/v1/claim", Answer::reply(200, ME)),
-        (
-            Method::Get,
-            "/api/v1/libraries",
-            Answer::reply(
-                200,
-                r#"[{"id":"0S31NXXY4VJJX","root":"/data/media/comics/"}]"#,
-            ),
-        ),
-    ]);
-    assert_eq!(komga(&fake).claim().await.ok(), Some(Owner::Ours));
-    assert!(!fake
-        .requests()
-        .iter()
-        .any(|one| one.method == Method::Post && one.url.ends_with("/libraries")));
 }
 
 #[tokio::test]
@@ -419,7 +390,10 @@ async fn a_claim_another_caller_took_first_is_answered_as_whoever_holds_it() {
             vec![Answer::reply(401, "")],
         ),
     ]);
-    assert_eq!(komga(&fake).claim().await.ok(), Some(Owner::Theirs));
+    assert_eq!(
+        komga(&fake).claim().await.ok(),
+        Some(Claim::Held(Owner::Theirs))
+    );
 }
 
 #[tokio::test]
@@ -446,71 +420,6 @@ async fn a_claim_whose_administrator_then_does_not_sign_in_is_refused() {
         komga(&fake).claim().await,
         "does not sign it in"
     ));
-}
-
-#[tokio::test]
-async fn an_open_komga_whose_data_root_files_no_comics_yet_is_claimed_with_no_library() {
-    for listed in [
-        r#"{"parent":"/data","directories":[],"files":[]}"#,
-        r#"{"parent":"/data","directories":[{"type":"directory","name":"comics-old","path":"/data/media/comics-old"}],"files":[]}"#,
-        r#"{"parent":"/data","directories":[{"type":"directory","name":"comics","path":"/elsewhere/comics"}],"files":[]}"#,
-    ] {
-        let fake = signed_in_and(vec![
-            (Method::Get, "/api/v1/claim", Answer::reply(200, UNCLAIMED)),
-            (Method::Post, "/api/v1/claim", Answer::reply(200, ME)),
-            (Method::Get, "/api/v1/libraries", Answer::reply(200, "[]")),
-            (
-                Method::Post,
-                "/api/v1/filesystem",
-                Answer::reply(200, listed),
-            ),
-        ]);
-        assert_eq!(
-            komga(&fake).claim().await.ok(),
-            Some(Owner::Ours),
-            "{listed}"
-        );
-        assert!(
-            !fake
-                .requests()
-                .iter()
-                .any(|one| one.method == Method::Post && one.url.ends_with("/libraries")),
-            "{listed}"
-        );
-    }
-}
-
-#[tokio::test]
-async fn a_data_root_komga_will_not_list_fails_the_claim() {
-    for answer in [Answer::reply(500, ""), Answer::reply(200, "<html>")] {
-        let fake = signed_in_and(vec![
-            (Method::Get, "/api/v1/claim", Answer::reply(200, UNCLAIMED)),
-            (Method::Post, "/api/v1/claim", Answer::reply(200, ME)),
-            (Method::Get, "/api/v1/libraries", Answer::reply(200, "[]")),
-            (Method::Post, "/api/v1/filesystem", answer),
-        ]);
-        assert!(komga(&fake).claim().await.is_err());
-    }
-}
-
-#[tokio::test]
-async fn a_comics_library_komga_will_not_make_fails_the_claim() {
-    let fake = signed_in_and(vec![
-        (Method::Get, "/api/v1/claim", Answer::reply(200, UNCLAIMED)),
-        (Method::Post, "/api/v1/claim", Answer::reply(200, ME)),
-        (Method::Get, "/api/v1/libraries", Answer::reply(200, "[]")),
-        (
-            Method::Post,
-            "/api/v1/filesystem",
-            Answer::reply(200, FILED),
-        ),
-        (
-            Method::Post,
-            "/api/v1/libraries",
-            Answer::reply(400, r#"{"message":"Library root folder does not exist"}"#),
-        ),
-    ]);
-    assert!(komga(&fake).claim().await.is_err());
 }
 
 #[tokio::test]

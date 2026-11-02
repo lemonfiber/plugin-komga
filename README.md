@@ -1,8 +1,9 @@
 # Komga for lemonfiber
 
-**Read comics, manga and digital magazines in a browser, and on the reading apps
-you already use.** This plugin adds [Komga](https://github.com/gotson/komga) to
-your lemonfiber stack, where everyone on your home network can reach it.
+**Read comics, manga, digital magazines and books in a browser, and on the
+reading apps you already use.** This plugin adds
+[Komga](https://github.com/gotson/komga) to your lemonfiber stack, where everyone
+on your home network can reach it.
 
 Without it, comics stay folders of images, opened one file at a time with
 nothing remembering where you were.
@@ -16,8 +17,10 @@ nothing remembering where you were.
 - **An administrator nobody else can take.** lemonfiber makes Komga's
   administrator itself, with an email address and password it mints, before
   anyone on your network can open Komga.
-- **Your comics as a library.** Komga is given a `Comics` library reading
-  `media/comics` in your data root, as soon as that folder exists.
+- **Your comics and books as libraries.** Where a service of your stack files
+  comics or books, Komga is given a `Comics` library reading `media/comics` or a
+  `Books` library reading `media/books` in your data root, once that folder
+  exists. A library you made is never renamed, re-pointed or removed.
 - **An OPDS catalogue and Kobo sync**, for reading apps and Kobo e-readers. Both
   ask for a Komga account.
 - **One more check in `lemonfiber doctor`**, with a fix when it fails:
@@ -84,10 +87,12 @@ installed, where each plugin came from, and how each of its services is reached.
    port 25600 of this machine. `lemonfiber credentials` lists the email address
    and password lemonfiber minted for it, and
    `lemonfiber credentials --reveal <name>` prints one, asking first.
-2. **Put your comics in `media/comics`.** Komga sees your data root at `/data`.
-   Where `media/comics` is there when lemonfiber claims Komga, Komga is given the
-   `Comics` library then; where it is not yet, Komga is given it at the next
-   rescan after the folder appears.
+2. **Put your comics in `media/comics` and your books in `media/books`.** Komga
+   sees your data root at `/data`. Each time `lemonfiber seed` runs, Komga is
+   given the `Comics` and `Books` libraries a service of your stack files, whose
+   folders are there and that no library reads yet. Where you already have a
+   library named `Comics` or `Books` reading another folder, it is left as it is
+   and none is added.
 3. **Connect your reading apps.** Komga's OPDS catalogue is at
    `/opds/v2/catalog` on the same address. A Kobo e-reader syncs with an API
    key that belongs to a Komga account.

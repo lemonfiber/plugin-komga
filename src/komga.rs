@@ -11,6 +11,7 @@ use lemonfiber_ports::http::{Fetched, Http, Method, Request, Response, JSON};
 use lemonfiber_ports::service::Failure;
 use serde::Deserialize;
 
+mod furnishing;
 mod keys;
 mod owning;
 mod screening;
@@ -24,6 +25,8 @@ const HEALTH: &str = "/actuator/health";
 const ME: &str = "/api/v2/users/me";
 
 const LIBRARIES: &str = "/api/v1/libraries";
+
+const LIBRARIES_UNREAD: &str = "the libraries Komga holds could not be read";
 
 const SERIES: &str = "/api/v1/series";
 
@@ -60,7 +63,6 @@ pub struct Komga {
 #[derive(Debug, Deserialize)]
 struct LibraryHeld {
     id: String,
-    root: String,
 }
 
 impl Komga {
@@ -226,9 +228,7 @@ impl Komga {
     }
 
     async fn libraries(&self) -> Result<Vec<LibraryHeld>, Failure> {
-        let held: Vec<LibraryHeld> = self
-            .read(LIBRARIES, "the libraries Komga holds could not be read")
-            .await?;
+        let held: Vec<LibraryHeld> = self.read(LIBRARIES, LIBRARIES_UNREAD).await?;
         Ok(held
             .into_iter()
             .filter(|library| an_id(&library.id))

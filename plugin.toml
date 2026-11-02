@@ -1,4 +1,4 @@
-#:schema https://raw.githubusercontent.com/lemonfiber/lemonfiber/c33ce3863e797769ae3da11d02ec9b0945369041/contract/plugin-manifest.schema.json
+#:schema https://raw.githubusercontent.com/lemonfiber/lemonfiber/fa979eaa9c26b98d2df7035385ca81b8770fefba/contract/plugin-manifest.schema.json
 # Komga, as a lemonfiber plugin.
 #
 # Contract: https://github.com/lemonfiber/spec/blob/main/20-architecture/contracts/plugin-manifest.md
@@ -13,7 +13,7 @@ schema_version = 1
 id          = "komga"
 name        = "Komga"
 version     = "1.1.0"
-description = "Reads comics, manga and magazines in a browser, and serves them to the reader apps you already use"
+description = "Reads comics, manga, magazines and books in a browser, and serves them to the reader apps you already use"
 without_it  = "Comics stay folders of images, opened one file at a time with nothing remembering where you were"
 upstream    = "https://github.com/gotson/komga"
 license     = "MIT"
@@ -43,11 +43,11 @@ health = { kind = "http", path = "/actuator/health", timeout_s = 120 }
 criticality = "enhancing"
 
 # The library half. `takes_data` mounts the data root; `media_types` is what
-# points this at the part of it that is comics, rather than leaving the operator
-# to find /data/media/comics in Komga's own settings on first run. The vocabulary
-# gained `comics` for exactly this — see lemonfiber-media-stack#79.
+# points this at the parts of it that are comics and books, rather than leaving
+# the operator to find /data/media/comics and /data/media/books in Komga's own
+# settings on first run.
 takes_data  = true
-media_types = ["comics"]
+media_types = ["comics", "books"]
 
 # Komga reads KOMGA_CONFIGDIR=/config, which is also the default, so this line
 # changes nothing for this plugin. It is here because it is load-bearing for the
@@ -71,7 +71,7 @@ listens     = 8080
 speaks      = ["owner.claim@1", "media.serve@1"]
 fronts      = "komga"
 provides    = ["media.serve"]
-media_types = ["comics"]
+media_types = ["comics", "books"]
 upstream    = { username = { secret = "admin-email" }, password = { secret = "admin-password" } }
 
 [[secret]]

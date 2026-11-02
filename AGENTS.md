@@ -32,9 +32,12 @@ alone and does not run the adapter yet; its proofs' recordings are under
   never logs them.
 - **A claim changes nothing Komga already holds** (`ARCH-R328`): only a Komga
   holding no account is claimed, through its own claim API, and one claimed by
-  anybody else is answered as theirs. The claim that makes the administrator
-  then gives Komga a `Comics` library at `/data/media/comics`, unless one already
-  reads that folder.
+  anybody else is answered as theirs. The claim makes no library.
+- **`furnish` is the only place a library is made** (`ARCH-R369`). It takes
+  `comics` and `books`, and adds a `Comics` or `Books` library at the folder the
+  core names, where Komga lists that folder and no library reads it. Where a
+  library of that name reads another folder it adds nothing. It renames,
+  re-points and removes no library, and answers every other media type not held.
 - **Nothing is asked for a member.** Komga does not speak `identity.source`, so
   every `media.serve` operation naming a member answers `unsupported`, as does
   everything else it cannot do (`ARCH-R334`).
