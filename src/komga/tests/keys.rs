@@ -129,6 +129,13 @@ async fn the_keys_filed_under_a_name_are_unsupported_since_komga_shows_each_once
 }
 
 #[tokio::test]
+async fn what_is_held_under_a_name_and_was_not_made_here_is_unsupported() {
+    let fake = Fake::silent();
+    assert!(unsupported(komga(&fake).astray("dashboard").await));
+    assert!(fake.requests().is_empty());
+}
+
+#[tokio::test]
 async fn a_key_is_minted_under_the_app_s_name_and_held_to_the_one_new_key_listed() {
     let fake = Fake::by_route_in_turn(vec![
         (

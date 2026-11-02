@@ -6,8 +6,8 @@ use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use lemonfiber_contract::client::Witness;
-use lemonfiber_contract::conformance::{cases, Expect};
-use lemonfiber_contract::{Contracted, Failure};
+use lemonfiber_contract::conformance::{filed, Expect, UNKEYED};
+use lemonfiber_contract::Contracted;
 use lemonfiber_ports::http::{Http, Request, Response, Unreachable};
 
 const ACCEPT: &str = "application/json";
@@ -109,6 +109,20 @@ fn upstream() -> toml::Table {
         .unwrap_or_default()
 }
 
+fn filing() -> Vec<String> {
+    upstream()
+        .get("media_types")
+        .and_then(toml::Value::as_array)
+        .map(|media| {
+            media
+                .iter()
+                .filter_map(toml::Value::as_str)
+                .map(str::to_owned)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 fn pinned() -> String {
     let upstream = upstream();
     format!("{}@{}", text(&upstream, "image"), text(&upstream, "digest"))
@@ -143,6 +157,7 @@ fn replayed(answer: &Answer) -> Response {
 #[tokio::test]
 async fn every_case_of_every_contract_spoken_is_recorded_and_read_as_the_core_reads_it() {
     let pinned = pinned();
+    let filing = filing();
     let spoken = spoken();
     assert_eq!(spoken, ["owner.claim@1", "media.serve@1"]);
     let mut faults = Vec::new();
@@ -151,7 +166,7 @@ async fn every_case_of_every_contract_spoken_is_recorded_and_read_as_the_core_re
         if !spoken.contains(&named) {
             continue;
         }
-        for case in cases(&capability) {
+        for case in filed(&capability, &filing) {
             let path = root()
                 .join("conformance")
                 .join(&named)
@@ -185,6 +200,12 @@ async fn every_case_of_every_contract_spoken_is_recorded_and_read_as_the_core_re
                         ));
                     }
                 }
+                Expect::Conforms if UNKEYED.contains(&recording.response.status) => {
+                    faults.push(format!(
+                        "{named}/{}: refused the plugin's own key",
+                        case.case
+                    ));
+                }
                 Expect::Conforms => {
                     let told = Arc::new(Told::default());
                     let client = Contracted::new(
@@ -194,9 +215,9 @@ async fn every_case_of_every_contract_spoken_is_recorded_and_read_as_the_core_re
                         "recorded",
                     )
                     .witnessed_by(told.clone());
-                    let read = case.operation.judged(&client).await;
+                    let _ = case.operation.judged(&client).await;
                     let said = told.0.lock().map(|said| said.clone()).unwrap_or_default();
-                    if matches!(read, Err(Failure::Unauthorised { .. })) || !said.is_empty() {
+                    if !said.is_empty() {
                         faults.push(format!("{named}/{}: {said:?}", case.case));
                     }
                 }

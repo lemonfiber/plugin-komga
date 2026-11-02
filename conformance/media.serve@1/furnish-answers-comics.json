@@ -1,0 +1,12 @@
+{
+  "recorded_from": "ghcr.io/gotson/komga@sha256:6c2a967bbe9acefd05933b2eb498f34afe96a83c6f7f8ab0acb512a1bb3ab50f",
+  "note": "Asked after the claim, which makes no library, with the data root filing comics: the adapter lists the folder above it, adds the Comics library at it, and answers comics held.",
+  "request": {"method": "POST", "path": "/lemonfiber/media.serve/v1/furnish", "accept": "application/json"},
+  "response": {
+    "status": 200,
+    "headers": {"content-type": "application/json"},
+    "json": [
+      {"held": true, "media_type": "comics"}
+    ]
+  }
+}

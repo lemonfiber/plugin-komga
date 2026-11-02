@@ -12,7 +12,7 @@ use async_trait::async_trait;
 use lemonfiber_adapter_kit::credential::spelled_as_a_key;
 use lemonfiber_adapter_kit::endpoint::form_encoded;
 use lemonfiber_ports::http::Method;
-use lemonfiber_ports::service::{AppKeys, Dated, Failure};
+use lemonfiber_ports::service::{AppKeys, Astray, Dated, Failure};
 use serde::Deserialize;
 
 use super::{an_id, Komga, ABSENT, ME};
@@ -259,5 +259,9 @@ impl AppKeys for Komga {
         }
         self.done(Method::Delete, &format!("{KEYS}/{id}"), None)
             .await
+    }
+
+    async fn astray(&self, _app: &str) -> Result<Vec<Astray>, Failure> {
+        Err(Self::unsupported(SHOWN_ONCE))
     }
 }
