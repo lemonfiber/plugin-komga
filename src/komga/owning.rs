@@ -11,6 +11,9 @@ use super::Komga;
 
 const CLAIM: &str = "/api/v1/claim";
 
+const CLAIMED_ITSELF: &str =
+    "Komga is claimed with the administrator lemonfiber minted for this plugin, which no outside service holds";
+
 const EMAIL: &str = "X-Komga-Email";
 
 const PASSWORD: &str = "X-Komga-Password";
@@ -99,5 +102,9 @@ impl Ownership for Komga {
 
     async fn claim(&self) -> Result<Claim, Failure> {
         self.claiming().await.map(Claim::Held)
+    }
+
+    async fn claimed_by(&self) -> Result<Option<String>, Failure> {
+        Err(Self::unsupported(CLAIMED_ITSELF))
     }
 }

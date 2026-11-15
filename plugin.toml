@@ -1,4 +1,4 @@
-#:schema https://raw.githubusercontent.com/lemonfiber/lemonfiber/fa979eaa9c26b98d2df7035385ca81b8770fefba/contract/plugin-manifest.schema.json
+#:schema https://raw.githubusercontent.com/lemonfiber/lemonfiber/e14e0fb1d95d7588b41983c0270c591828d2f0ce/contract/plugin-manifest.schema.json
 # Komga, as a lemonfiber plugin.
 #
 # Contract: https://github.com/lemonfiber/spec/blob/main/20-architecture/contracts/plugin-manifest.md

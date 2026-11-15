@@ -117,6 +117,7 @@ impl Komga {
             headers,
             body,
             pinned: None,
+            deadline: None,
         }
     }
 

@@ -12,7 +12,8 @@ use async_trait::async_trait;
 use lemonfiber_adapter_kit::credential::spelled_as_a_key;
 use lemonfiber_adapter_kit::endpoint::form_encoded;
 use lemonfiber_ports::http::Method;
-use lemonfiber_ports::service::{AppKeys, Astray, Dated, Failure};
+use lemonfiber_ports::service::{AppKeys, Astray, Dated, Failure, OutsideAccount, OutsideServer};
+use lemonfiber_ports::Instant;
 use serde::Deserialize;
 
 use super::{an_id, Komga, ABSENT, ME};
@@ -30,6 +31,8 @@ const USER_AGENT: &str = "User-Agent";
 const SOURCE: &str = "ApiKey";
 
 const SHOWN_ONCE: &str = "Komga shows a key only once, when it is minted";
+
+const NO_OUTSIDE: &str = "Komga holds its own accounts, and no outside service holds them";
 
 const NOT_HELD: &str = "Komga holds no key that one names";
 
@@ -193,8 +196,11 @@ impl AppKeys for Komga {
                 None
             };
             dated.push(Dated {
-                created: key.created_date,
-                last_used,
+                created: key
+                    .created_date
+                    .as_deref()
+                    .and_then(Instant::from_service_text),
+                last_used: last_used.as_deref().and_then(Instant::from_service_text),
             });
         }
         Ok(dated)
@@ -263,5 +269,13 @@ impl AppKeys for Komga {
 
     async fn astray(&self, _app: &str) -> Result<Vec<Astray>, Failure> {
         Err(Self::unsupported(SHOWN_ONCE))
+    }
+
+    async fn account(&self, _app: &str) -> Result<OutsideAccount, Failure> {
+        Err(Self::unsupported(NO_OUTSIDE))
+    }
+
+    async fn listed_as(&self) -> Result<OutsideServer, Failure> {
+        Err(Self::unsupported(NO_OUTSIDE))
     }
 }
