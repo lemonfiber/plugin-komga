@@ -1,8 +1,9 @@
 use lemonfiber_fixtures::http::{Answer, Fake};
 use lemonfiber_ports::http::Method;
-use lemonfiber_ports::media::Kind;
+use lemonfiber_ports::media::TitleKind;
 use lemonfiber_ports::service::{
-    Declaring as _, Encrypting as _, Fronted as _, Library as _, Upkeep as _,
+    Allowing as _, Declaring as _, Encrypting as _, Fronted as _, Library as _, Recounting as _,
+    Tuning as _, Upkeep as _,
 };
 
 use super::{asked, komga, refused_saying, signed_in_and, unsupported, FILED, LIBRARIES};
@@ -109,7 +110,6 @@ async fn a_refresh_of_nothing_komga_holds_is_refused() {
 async fn what_komga_has_no_equivalent_for_is_unsupported_and_asks_nothing() {
     let fake = Fake::silent();
     let komga = komga(&fake);
-    assert!(unsupported(komga.has_item(Kind::Movies, "t").await));
     assert!(unsupported(komga.series_held(1).await));
     assert!(unsupported(komga.known_proxies().await));
     assert!(unsupported(komga.trust_only("10.0.0.1").await));
@@ -118,5 +118,74 @@ async fn what_komga_has_no_equivalent_for_is_unsupported_and_asks_nothing() {
     assert!(unsupported(komga.restart().await));
     assert!(unsupported(komga.declared().await));
     assert!(unsupported(komga.serve_tls("/config/x.p12", "p").await));
+    assert!(unsupported(
+        komga
+            .allow_origins(&["https://example.org".to_owned()])
+            .await
+    ));
+    assert!(unsupported(
+        komga
+            .events(
+                Some("https://lemonfiber/events"),
+                Some("p"),
+                Some("k"),
+                Some(60)
+            )
+            .await
+    ));
+    assert!(unsupported(komga.channels("m").await));
+    assert!(unsupported(komga.tune("m", "c").await));
+    assert!(unsupported(komga.untune("c").await));
     assert!(fake.requests().is_empty());
+}
+
+#[tokio::test]
+async fn a_series_whose_name_or_title_holds_the_term_is_in_the_library() {
+    let fake = signed_in_and(vec![(
+        Method::Get,
+        "/api/v1/series",
+        Answer::reply(
+            200,
+            r#"{"content":[{"id":"0S31NXXY4VJJA","name":"saga-vol","metadata":{"title":"Saga"}},{"id":"0S31NXXY4VJJB","name":"Monstress"}]}"#,
+        ),
+    )]);
+    let komga = komga(&fake);
+    assert_eq!(
+        komga.has_item(TitleKind::Books, "SAGA").await.ok(),
+        Some(true)
+    );
+    assert_eq!(
+        komga.has_item(TitleKind::Books, "monstr").await.ok(),
+        Some(true)
+    );
+    assert_eq!(
+        komga.has_item(TitleKind::Books, "Paper Girls").await.ok(),
+        Some(false)
+    );
+    assert!(fake
+        .requests()
+        .iter()
+        .any(|one| one.url.ends_with("/api/v1/series?search=SAGA&unpaged=true")));
+}
+
+#[tokio::test]
+async fn nothing_but_books_is_in_the_library_and_nothing_is_asked_for_it() {
+    let fake = Fake::silent();
+    for kind in [TitleKind::Tv, TitleKind::Movies, TitleKind::Music] {
+        assert_eq!(komga(&fake).has_item(kind, "t").await.ok(), Some(false));
+    }
+    assert!(fake.requests().is_empty());
+}
+
+#[tokio::test]
+async fn series_it_cannot_read_leave_it_unable_to_say() {
+    let fake = signed_in_and(vec![(
+        Method::Get,
+        "/api/v1/series",
+        Answer::reply(200, "{"),
+    )]);
+    assert!(refused_saying(
+        komga(&fake).has_item(TitleKind::Books, "t").await,
+        "series Komga holds could not be read"
+    ));
 }

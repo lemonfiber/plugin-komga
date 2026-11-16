@@ -5,9 +5,10 @@
 
 use async_trait::async_trait;
 use lemonfiber_ports::http::Method;
-use lemonfiber_ports::media::Kind;
+use lemonfiber_ports::media::TitleKind;
 use lemonfiber_ports::service::{
-    Applied, Declared, Declaring, Encrypting, Failure, Fronted, Library, SeriesHeld, Upkeep,
+    Allowing, Applied, Channel, Declared, Declaring, Encrypting, Failure, Fronted, Heard, Library,
+    Recounting, SeriesHeld, Tuned, Tuning, Upkeep,
 };
 
 use super::{an_id, Komga, ABSENT, BOOKS, LIBRARIES, SERIES};
@@ -24,12 +25,20 @@ const NO_GUARD: &str = "Komga serves no member through a guard of lemonfiber's";
 
 const NO_TLS: &str = "Komga serves no internal TLS port";
 
+const NO_EVENTS: &str = "Komga tells nobody what it adds or what goes wrong";
+
+const NO_LIVE_TV: &str = "Komga has no live TV";
+
 const NOTHING_THERE: &str = "Komga holds no series or book under that id";
 
 #[async_trait]
 impl Library for Komga {
-    async fn has_item(&self, _kind: Kind, _term: &str) -> Result<bool, Failure> {
-        Err(Self::unsupported(NO_KINDS))
+    async fn has_item(&self, kind: TitleKind, term: &str) -> Result<bool, Failure> {
+        if kind == TitleKind::Books {
+            self.has_series(term).await
+        } else {
+            Ok(false)
+        }
     }
 
     async fn rescan(&self) -> Result<(), Failure> {
@@ -87,6 +96,41 @@ impl Fronted for Komga {
 
     async fn restart(&self) -> Result<(), Failure> {
         Err(Self::unsupported(NO_RESTART))
+    }
+}
+
+#[async_trait]
+impl Allowing for Komga {
+    async fn allow_origins(&self, _origins: &[String]) -> Result<(), Failure> {
+        Err(Self::unsupported(NO_ORIGINS))
+    }
+}
+
+#[async_trait]
+impl Recounting for Komga {
+    async fn events(
+        &self,
+        _address: Option<&str>,
+        _pin: Option<&str>,
+        _key: Option<&str>,
+        _every: Option<u32>,
+    ) -> Result<Option<Heard>, Failure> {
+        Err(Self::unsupported(NO_EVENTS))
+    }
+}
+
+#[async_trait]
+impl Tuning for Komga {
+    async fn channels(&self, _member: &str) -> Result<Vec<Channel>, Failure> {
+        Err(Self::unsupported(NO_LIVE_TV))
+    }
+
+    async fn tune(&self, _member: &str, _channel: &str) -> Result<Option<Tuned>, Failure> {
+        Err(Self::unsupported(NO_LIVE_TV))
+    }
+
+    async fn untune(&self, _closes_by: &str) -> Result<(), Failure> {
+        Err(Self::unsupported(NO_LIVE_TV))
     }
 }
 

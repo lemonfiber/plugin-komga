@@ -97,6 +97,15 @@ fn titled(named: Option<&String>, name: &str) -> String {
 }
 
 impl Series {
+    fn named(&self, needle: &str) -> bool {
+        self.name.to_lowercase().contains(needle)
+            || self
+                .metadata
+                .title
+                .as_deref()
+                .is_some_and(|title| title.to_lowercase().contains(needle))
+    }
+
     fn item(&self) -> Item {
         Item {
             id: self.id.clone(),
@@ -214,6 +223,18 @@ impl Komga {
             Some(image) => Ok(Some(image)),
             None => self.thumbnail(&format!("{BOOKS}/{id}/thumbnail")).await,
         }
+    }
+
+    pub(super) async fn has_series(&self, term: &str) -> Result<bool, Failure> {
+        let asked = form_encoded(&[("search", term), ("unpaged", "true")]);
+        let page: Page<Series> = self
+            .read(
+                &format!("{SERIES}?{asked}"),
+                "the series Komga holds could not be read",
+            )
+            .await?;
+        let needle = term.to_lowercase();
+        Ok(page.content.iter().any(|series| series.named(&needle)))
     }
 
     async fn held(&self, most: u32) -> Result<Vec<Item>, Failure> {

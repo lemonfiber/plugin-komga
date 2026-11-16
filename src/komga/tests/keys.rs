@@ -1,3 +1,4 @@
+use lemonfiber_ports::Instant;
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
@@ -250,12 +251,12 @@ async fn each_key_filed_under_an_app_is_dated_by_when_it_was_made_and_last_signe
                 last_used: None,
             },
             Dated {
-                created: Some("2026-10-01T00:00:00Z".to_owned()),
+                created: Instant::from_service_text("2026-10-01T00:00:00Z"),
                 last_used: None,
             },
             Dated {
-                created: Some("2026-10-02T00:00:00Z".to_owned()),
-                last_used: Some("2026-10-31T01:02:03Z".to_owned()),
+                created: Instant::from_service_text("2026-10-02T00:00:00Z"),
+                last_used: Instant::from_service_text("2026-10-31T01:02:03Z"),
             },
         ])
     );
