@@ -17,8 +17,7 @@ pub const UPSTREAM: &str = "Komga";
 /// The Komga release this adapter's recordings were taken from.
 pub const RELEASE: &str = "1.26.3";
 
-/// The digest of the image that release's recordings were taken from.
-pub const DIGEST: &str = "sha256:6c2a967bbe9acefd05933b2eb498f34afe96a83c6f7f8ab0acb512a1bb3ab50f";
+include!(concat!(env!("OUT_DIR"), "/fronted.rs"));
 
 /// What this adapter says it is: the contracts it speaks and the release it supports.
 #[must_use]
