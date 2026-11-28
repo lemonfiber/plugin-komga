@@ -134,6 +134,7 @@ async fn what_komga_has_no_equivalent_for_is_unsupported_and_asks_nothing() {
             .await
     ));
     assert!(unsupported(komga.channels("m").await));
+    assert!(unsupported(komga.guide("m", 12).await));
     assert!(unsupported(komga.tune("m", "c").await));
     assert!(unsupported(komga.untune("c").await));
     assert!(fake.requests().is_empty());
@@ -155,6 +156,14 @@ async fn a_series_whose_name_or_title_holds_the_term_is_in_the_library() {
         Some(true)
     );
     assert_eq!(
+        komga.has_item(TitleKind::Comics, "saga").await.ok(),
+        Some(true)
+    );
+    assert_eq!(
+        komga.has_item(TitleKind::Comics, "Paper Girls").await.ok(),
+        Some(false)
+    );
+    assert_eq!(
         komga.has_item(TitleKind::Books, "monstr").await.ok(),
         Some(true)
     );
@@ -169,9 +178,15 @@ async fn a_series_whose_name_or_title_holds_the_term_is_in_the_library() {
 }
 
 #[tokio::test]
-async fn nothing_but_books_is_in_the_library_and_nothing_is_asked_for_it() {
+async fn nothing_but_comics_and_books_is_in_the_library_and_nothing_is_asked_for_it() {
     let fake = Fake::silent();
-    for kind in [TitleKind::Tv, TitleKind::Movies, TitleKind::Music] {
+    for kind in [
+        TitleKind::Tv,
+        TitleKind::Movies,
+        TitleKind::Music,
+        TitleKind::Audiobooks,
+        TitleKind::Podcasts,
+    ] {
         assert_eq!(komga(&fake).has_item(kind, "t").await.ok(), Some(false));
     }
     assert!(fake.requests().is_empty());
