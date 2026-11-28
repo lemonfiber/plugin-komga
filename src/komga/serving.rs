@@ -8,7 +8,7 @@ use lemonfiber_ports::http::Method;
 use lemonfiber_ports::media::TitleKind;
 use lemonfiber_ports::service::{
     Allowing, Applied, Channel, Declared, Declaring, Encrypting, Failure, Fronted, Heard, Library,
-    Recounting, SeriesHeld, Tuned, Tuning, Upkeep,
+    Listing, Recounting, SeriesHeld, Tuned, Tuning, Upkeep,
 };
 
 use super::{an_id, Komga, ABSENT, BOOKS, LIBRARIES, SERIES};
@@ -34,7 +34,7 @@ const NOTHING_THERE: &str = "Komga holds no series or book under that id";
 #[async_trait]
 impl Library for Komga {
     async fn has_item(&self, kind: TitleKind, term: &str) -> Result<bool, Failure> {
-        if kind == TitleKind::Books {
+        if matches!(kind, TitleKind::Books | TitleKind::Comics) {
             self.has_series(term).await
         } else {
             Ok(false)
@@ -122,6 +122,10 @@ impl Recounting for Komga {
 #[async_trait]
 impl Tuning for Komga {
     async fn channels(&self, _member: &str) -> Result<Vec<Channel>, Failure> {
+        Err(Self::unsupported(NO_LIVE_TV))
+    }
+
+    async fn guide(&self, _member: &str, _hours: u32) -> Result<Vec<Listing>, Failure> {
         Err(Self::unsupported(NO_LIVE_TV))
     }
 
